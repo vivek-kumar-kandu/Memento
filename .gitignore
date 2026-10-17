@@ -1,0 +1,24 @@
+# Flutter / Dart
+flutter/build/
+flutter/.dart_tool/
+flutter/.flutter-plugins*
+flutter/.pub/
+flutter/.pub-cache/
+
+# Python / Virtual Environment
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+*.db
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.iml
