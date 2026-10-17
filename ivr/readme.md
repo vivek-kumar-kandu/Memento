@@ -1,1 +1,1 @@
-using edesy for call recording and speech to text 
+using edesy for call recording and speech to text and text to speech
