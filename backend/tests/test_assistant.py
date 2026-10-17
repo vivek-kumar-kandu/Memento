@@ -160,3 +160,186 @@ async def test_assistant_unknown_fallback(client: AsyncClient):
     data = res.json()
     assert data["intent"] == "unknown"
     assert data["next_action"] == "CLARIFY"
+
+
+@pytest.mark.asyncio
+async def test_assistant_flutter_gps_discovery_without_case(client: AsyncClient):
+    """
+    Test Flutter app discovering nearby facilities via GPS without an active emergency.
+    Verifies that searching does NOT create an emergency case, and returns nearby facilities.
+    """
+    payload = {
+        "channel": "FLUTTER",
+        "message": "Find nearby healthcare facilities",
+        "conversation_id": None,
+        "location": {
+            "latitude": 26.8467,
+            "longitude": 80.9462,
+            "accuracy_m": 15.0,
+        },
+    }
+    res = await client.post("/api/v1/assistant/message", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+
+    # Conversation ID generated, but NO case created
+    assert data["conversation_id"] is not None
+    assert data["case_id"] is None
+    assert data["next_action"] in ["CONFIRM_EMERGENCY", "FACILITIES_FOUND"]
+
+    # Nearby facilities returned and distance-sorted
+    assert data["nearby_facilities"] is not None
+    assert len(data["nearby_facilities"]) > 0
+    distances = [f["distance_km"] for f in data["nearby_facilities"]]
+    assert distances == sorted(distances)
+
+    # GPS accuracy metadata preserved with disclaimer
+    assert data["safety_metadata"]["gps_client_reported_accuracy_m"] == 15.0
+    assert "not been independently verified" in data["safety_metadata"]["gps_accuracy_notice"]
+
+
+@pytest.mark.asyncio
+async def test_assistant_flutter_emergency_with_gps(client: AsyncClient):
+    """
+    Test Flutter emergency report with structured GPS coordinates.
+    Creates case, links GPS, auto-initiates referral to closest PHC/CHC.
+    """
+    payload = {
+        "channel": "FLUTTER",
+        "message": "Snake bite emergency help, bitten on the foot",
+        "location": {
+            "latitude": 26.8467,
+            "longitude": 80.9462,
+            "accuracy_m": 8.5,
+        },
+    }
+    res = await client.post("/api/v1/assistant/message", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+
+    assert data["case_id"] is not None
+    assert data["case_id"].startswith("DS-")
+    assert data["case_status"] == "REFERRAL_MADE"
+    assert data["next_action"] == "DISPATCH_OR_TRANSPORT"
+    assert data["nearby_facilities"] is not None
+    assert len(data["nearby_facilities"]) > 0
+    assert data["referral"] is not None
+    assert data["referral"]["referral_status"] == "PENDING"
+    assert data["referral"]["facility_id"] == data["nearby_facilities"][0]["facility_id"]
+    assert data["safety_metadata"]["gps_client_reported_accuracy_m"] == 8.5
+
+
+@pytest.mark.asyncio
+async def test_assistant_flutter_gps_precedence_over_free_text(client: AsyncClient):
+    """
+    Test that structured client GPS coordinates take strict precedence
+    over conflicting decimal coordinates or place names in the free-text message.
+    """
+    # Structured coordinates are for Lucknow (26.8467, 80.9462),
+    # while free-text message contains Bangalore coordinates (12.9716, 77.5946).
+    payload = {
+        "channel": "FLUTTER",
+        "message": "We might be at 12.9716, 77.5946 or somewhere else",
+        "location": {
+            "latitude": 26.8467,
+            "longitude": 80.9462,
+            "accuracy_m": 12.0,
+        },
+    }
+    res = await client.post("/api/v1/assistant/message", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+
+    assert data["nearby_facilities"] is not None
+    assert len(data["nearby_facilities"]) > 0
+
+    # Nearest facility must be in Lucknow district, confirming structured GPS was used
+    nearest = data["nearby_facilities"][0]
+    assert nearest["district_name"].lower() == "lucknow"
+    assert nearest["distance_km"] < 25.0
+
+
+@pytest.mark.asyncio
+async def test_assistant_flutter_invalid_gps_rejected(client: AsyncClient):
+    """Test validation errors for invalid, out-of-bounds, or half-provided GPS coordinates."""
+    # Latitude out of bounds (> 90)
+    res1 = await client.post(
+        "/api/v1/assistant/message",
+        json={
+            "channel": "FLUTTER",
+            "message": "Find nearby facilities",
+            "location": {"latitude": 150.0, "longitude": 80.0},
+        },
+    )
+    assert res1.status_code == 422
+
+    # Negative accuracy_m
+    res2 = await client.post(
+        "/api/v1/assistant/message",
+        json={
+            "channel": "FLUTTER",
+            "message": "Find nearby facilities",
+            "location": {"latitude": 26.8, "longitude": 80.9, "accuracy_m": -10.0},
+        },
+    )
+    assert res2.status_code == 422
+
+    # Latitude provided without longitude
+    res3 = await client.post(
+        "/api/v1/assistant/message",
+        json={
+            "channel": "FLUTTER",
+            "message": "Find nearby facilities",
+            "location": {"latitude": 26.8},
+        },
+    )
+    assert res3.status_code == 422
+
+    # NaN coordinate
+    res4 = await client.post(
+        "/api/v1/assistant/message",
+        json={
+            "channel": "FLUTTER",
+            "message": "Find nearby facilities",
+            "location": {"latitude": "NaN", "longitude": 80.9},
+        },
+    )
+    assert res4.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_assistant_multi_turn_preserves_identifiers(client: AsyncClient):
+    """
+    Test multi-turn conversation retains conversation_id and case_id
+    when follow-up message has no GPS coordinates.
+    """
+    # Turn 1: Emergency report with GPS
+    res1 = await client.post(
+        "/api/v1/assistant/message",
+        json={
+            "channel": "FLUTTER",
+            "message": "A snake bit my sister!",
+            "location": {"latitude": 26.8467, "longitude": 80.9462},
+        },
+    )
+    assert res1.status_code == 200
+    conv_id = res1.json()["conversation_id"]
+    case_id = res1.json()["case_id"]
+    assert conv_id is not None
+    assert case_id is not None
+
+    # Turn 2: Follow-up symptom report without location
+    res2 = await client.post(
+        "/api/v1/assistant/message",
+        json={
+            "channel": "FLUTTER",
+            "conversation_id": conv_id,
+            "case_id": case_id,
+            "message": "Her leg is swelling rapidly and she feels dizzy",
+        },
+    )
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data2["conversation_id"] == conv_id
+    assert data2["case_id"] == case_id
+    assert data2["intent"] == "symptom_report"

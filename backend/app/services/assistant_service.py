@@ -23,17 +23,52 @@ class AssistantService:
         pass
 
     @staticmethod
-    def extract_coordinates(text: str, location_dict: Optional[Dict[str, Any]] = None) -> Optional[Tuple[float, float]]:
-        """Extract valid (lat, lon) from structured dict or text if present."""
-        # 1. Structured location dict
-        if location_dict:
-            try:
-                lat = float(location_dict.get("latitude") or location_dict.get("lat"))
-                lon = float(location_dict.get("longitude") or location_dict.get("lon") or location_dict.get("lng"))
-                if -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0:
-                    return lat, lon
-            except (TypeError, ValueError):
-                pass
+    def extract_coordinates(
+        text: str, location_input: Optional[Any] = None
+    ) -> Optional[Tuple[float, float, Optional[float]]]:
+        """Extract valid (lat, lon, accuracy_m) prioritizing structured client GPS coordinates over free text."""
+        # 1. Structured location from client (e.g. Flutter GPS)
+        if location_input:
+            loc_data = (
+                location_input.model_dump()
+                if hasattr(location_input, "model_dump")
+                else location_input
+            )
+            if isinstance(loc_data, dict):
+                try:
+                    lat_val = (
+                        loc_data.get("latitude")
+                        if loc_data.get("latitude") is not None
+                        else loc_data.get("lat")
+                    )
+                    lon_val = (
+                        loc_data.get("longitude")
+                        if loc_data.get("longitude") is not None
+                        else (loc_data.get("lon") if loc_data.get("lon") is not None else loc_data.get("lng"))
+                    )
+                    acc_val = (
+                        loc_data.get("accuracy_m")
+                        if loc_data.get("accuracy_m") is not None
+                        else loc_data.get("accuracy")
+                    )
+
+                    if lat_val is not None and lon_val is not None:
+                        lat = float(lat_val)
+                        lon = float(lon_val)
+                        import math
+                        if not (math.isnan(lat) or math.isnan(lon) or math.isinf(lat) or math.isinf(lon)):
+                            if -90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0:
+                                acc = None
+                                if acc_val is not None:
+                                    try:
+                                        a = float(acc_val)
+                                        if not (math.isnan(a) or math.isinf(a)) and a >= 0:
+                                            acc = a
+                                    except (TypeError, ValueError):
+                                        pass
+                                return lat, lon, acc
+                except (TypeError, ValueError):
+                    pass
 
         # 2. Text regex for decimal coordinates e.g. "26.8467, 80.9462" or "lat: 26.8, lon: 80.9"
         coord_pattern = r"(-?\d{1,2}\.\d{3,8})[,\s]+(-?\d{1,3}\.\d{3,8})"
@@ -43,22 +78,34 @@ class AssistantService:
                 lat = float(match.group(1))
                 lon = float(match.group(2))
                 if 6.0 <= lat <= 38.0 and 68.0 <= lon <= 98.0:  # Valid Indian bounding box
-                    return lat, lon
+                    return lat, lon, None
             except ValueError:
                 pass
 
         return None
 
     @staticmethod
-    def resolve_location_name(text: str, location_dict: Optional[Dict[str, Any]] = None) -> Tuple[Optional[str], Optional[Tuple[float, float]]]:
+    def resolve_location_name(
+        text: str, location_input: Optional[Any] = None
+    ) -> Tuple[Optional[str], Optional[Tuple[float, float]]]:
         """
         Attempt to resolve a village or subdistrict name from facility directory.
         Returns (resolved_name, (lat, lon)) if verified, else (None, None).
         NEVER fabricates coordinates or distances.
         """
         candidate_name = None
-        if location_dict:
-            candidate_name = location_dict.get("village") or location_dict.get("landmark") or location_dict.get("name")
+        if location_input:
+            loc_data = (
+                location_input.model_dump()
+                if hasattr(location_input, "model_dump")
+                else location_input
+            )
+            if isinstance(loc_data, dict):
+                candidate_name = (
+                    loc_data.get("village")
+                    or loc_data.get("landmark")
+                    or loc_data.get("name")
+                )
 
         lowered = text.lower()
 
@@ -151,6 +198,33 @@ class AssistantService:
         next_action = "CONTINUE"
         response_text = ""
 
+        # Extract coordinates and location metadata (prioritizing structured client GPS)
+        coords_res = self.extract_coordinates(payload.message, payload.location)
+        resolved_name, name_coords = self.resolve_location_name(payload.message, payload.location)
+        effective_coords = (coords_res[0], coords_res[1]) if coords_res else name_coords
+        accuracy_m = coords_res[2] if coords_res else None
+
+        # Check if conversation context previously recorded a valid location
+        if not effective_coords and context.get("last_location"):
+            last_loc = context["last_location"]
+            if isinstance(last_loc, dict) and "latitude" in last_loc and "longitude" in last_loc:
+                effective_coords = (float(last_loc["latitude"]), float(last_loc["longitude"]))
+                if accuracy_m is None and "accuracy_m" in last_loc:
+                    accuracy_m = last_loc.get("accuracy_m")
+
+        # Save coordinates into session context for multi-turn conversational persistence
+        if effective_coords:
+            lat, lon = effective_coords
+            context["last_location"] = {
+                "latitude": lat,
+                "longitude": lon,
+                "accuracy_m": accuracy_m,
+            }
+            # Execute BallTree spatial search for nearby PHCs/CHCs
+            search_q = FacilityNearbyQuery(latitude=lat, longitude=lon, radius_km=30.0, limit=5)
+            search_res = facility_service.search_nearby(search_q)
+            nearby_items = search_res.facilities
+
         safety_metadata = {
             "asv_verification_status": "UNKNOWN/NOT_VERIFIED",
             "asv_safety_notice": (
@@ -163,6 +237,11 @@ class AssistantService:
             ),
             "emergency_numbers": ["108 (Ambulance)", "112 (National Emergency)"],
         }
+        if accuracy_m is not None:
+            safety_metadata["gps_client_reported_accuracy_m"] = accuracy_m
+            safety_metadata["gps_accuracy_notice"] = (
+                "Device GPS accuracy is reported by the client operating system and has not been independently verified."
+            )
 
         # -------------------------------------------------------------
         # Intent Execution Logic
@@ -180,9 +259,23 @@ class AssistantService:
         elif intent == "emergency_report" or (is_emergency and not case_obj):
             if not case_obj:
                 # Create new case
+                case_loc = None
+                if effective_coords:
+                    lat, lon = effective_coords
+                    case_loc = {"latitude": lat, "longitude": lon}
+                    if accuracy_m is not None:
+                        case_loc["accuracy_m"] = accuracy_m
+                elif payload.location:
+                    case_loc = (
+                        payload.location.model_dump(exclude_none=True)
+                        if hasattr(payload.location, "model_dump")
+                        else payload.location
+                    )
+
                 case_create = EmergencyCaseCreate(
                     channel=payload.channel,
-                    location=payload.location,
+                    location=case_loc,
+                    village=resolved_name,
                 )
                 case_resp = await case_service.create_case(case_create, db)
                 session.case_id = case_resp.id
@@ -192,33 +285,27 @@ class AssistantService:
                 res = await db.execute(stmt)
                 case_obj = res.scalar_one_or_none()
 
-            # Check if location is already known
-            coords = self.extract_coordinates(payload.message, payload.location)
-            resolved_name, name_coords = self.resolve_location_name(payload.message, payload.location)
-            effective_coords = coords or name_coords
-
-            if effective_coords:
+            if effective_coords and case_obj:
                 lat, lon = effective_coords
-                case_obj.location = {"latitude": lat, "longitude": lon}
+                loc_dict = {"latitude": lat, "longitude": lon}
+                if accuracy_m is not None:
+                    loc_dict["accuracy_m"] = accuracy_m
+                case_obj.location = loc_dict
                 if resolved_name:
                     case_obj.village = resolved_name
                 await db.commit()
 
-                # Find nearby facilities
-                search_q = FacilityNearbyQuery(latitude=lat, longitude=lon, radius_km=30.0, limit=5)
-                search_res = facility_service.search_nearby(search_q)
-                nearby_items = search_res.facilities
-
                 if nearby_items:
                     nearest = nearby_items[0]
                     # Automatically initiate referral (status: PENDING)
-                    ref_req = ReferralCreateRequest(
-                        facility_id=nearest.facility_id,
-                        referral_status=ReferralStatus.PENDING,
-                        notes=f"Auto-referred to nearest facility {nearest.facility_name} ({nearest.distance_km:.1f} km away).",
-                    )
-                    await case_service.add_referral(case_obj.id, ref_req, db)
-                    await db.refresh(case_obj)
+                    if not case_obj.referral_facility_id:
+                        ref_req = ReferralCreateRequest(
+                            facility_id=nearest.facility_id,
+                            referral_status=ReferralStatus.PENDING,
+                            notes=f"Auto-referred to nearest facility {nearest.facility_name} ({nearest.distance_km:.1f} km away).",
+                        )
+                        await case_service.add_referral(case_obj.id, ref_req, db)
+                        await db.refresh(case_obj)
 
                     response_text = (
                         f"Emergency case recorded (Case ID: {case_obj.id}). "
@@ -245,31 +332,26 @@ class AssistantService:
 
         # C. LOCATION RESPONSE (OR ACTIVE CASE AWAITING LOCATION)
         elif intent == "location_response" or (case_obj and not case_obj.location):
-            coords = self.extract_coordinates(payload.message, payload.location)
-            resolved_name, name_coords = self.resolve_location_name(payload.message, payload.location)
-            effective_coords = coords or name_coords
-
             if effective_coords and case_obj:
                 lat, lon = effective_coords
-                case_obj.location = {"latitude": lat, "longitude": lon}
+                loc_dict = {"latitude": lat, "longitude": lon}
+                if accuracy_m is not None:
+                    loc_dict["accuracy_m"] = accuracy_m
+                case_obj.location = loc_dict
                 if resolved_name:
                     case_obj.village = resolved_name
                 await db.commit()
 
-                # Search nearby
-                search_q = FacilityNearbyQuery(latitude=lat, longitude=lon, radius_km=30.0, limit=5)
-                search_res = facility_service.search_nearby(search_q)
-                nearby_items = search_res.facilities
-
                 if nearby_items:
                     nearest = nearby_items[0]
-                    ref_req = ReferralCreateRequest(
-                        facility_id=nearest.facility_id,
-                        referral_status=ReferralStatus.PENDING,
-                        notes=f"Referred to nearest facility {nearest.facility_name} ({nearest.distance_km:.1f} km away).",
-                    )
-                    await case_service.add_referral(case_obj.id, ref_req, db)
-                    await db.refresh(case_obj)
+                    if not case_obj.referral_facility_id:
+                        ref_req = ReferralCreateRequest(
+                            facility_id=nearest.facility_id,
+                            referral_status=ReferralStatus.PENDING,
+                            notes=f"Referred to nearest facility {nearest.facility_name} ({nearest.distance_km:.1f} km away).",
+                        )
+                        await case_service.add_referral(case_obj.id, ref_req, db)
+                        await db.refresh(case_obj)
 
                     response_text = (
                         f"Location received. Nearest healthcare facility: {nearest.facility_name} "
@@ -294,11 +376,29 @@ class AssistantService:
                     "Do not delay seeking medical care."
                 )
             else:
-                response_text = (
-                    "Location noted, but no active emergency case was found. "
-                    "If someone has been bitten by a snake, please confirm immediately."
-                )
-                next_action = "CONFIRM_EMERGENCY"
+                # No active emergency case — location query / nearby discovery (e.g. Flutter GPS lookup)
+                if effective_coords and nearby_items:
+                    lat, lon = effective_coords
+                    nearest = nearby_items[0]
+                    response_text = (
+                        f"Location received ({lat:.4f}, {lon:.4f}). Found {len(nearby_items)} nearby facilities within 30 km. "
+                        f"Nearest: {nearest.facility_name} ({nearest.distance_km:.1f} km away). "
+                        f"If someone has been bitten by a snake, please confirm immediately so emergency triage and hospital referral can be initiated."
+                    )
+                    next_action = "CONFIRM_EMERGENCY"
+                elif effective_coords:
+                    lat, lon = effective_coords
+                    response_text = (
+                        f"Location received at ({lat:.4f}, {lon:.4f}). No PHC/CHC found within 30 km. "
+                        f"In an emergency, call 108 ambulance dispatch immediately."
+                    )
+                    next_action = "CALL_108"
+                else:
+                    response_text = (
+                        "Location noted, but no active emergency case was found. "
+                        "If someone has been bitten by a snake, please confirm immediately."
+                    )
+                    next_action = "CONFIRM_EMERGENCY"
 
         # D. FIRST AID QUERY
         elif intent == "first_aid_query":
@@ -336,11 +436,29 @@ class AssistantService:
 
         # G. UNKNOWN / SAFE FALLBACK
         else:
-            response_text = (
-                "I am Dhwani-Sanjeevani emergency assistant. If this is a snakebite emergency, "
-                "please tell me who was bitten and where you are, or ask for an operator."
-            )
-            next_action = "CLARIFY"
+            # If coordinates are available with an unknown query (e.g. Flutter "Find nearby healthcare facilities")
+            if effective_coords and nearby_items:
+                lat, lon = effective_coords
+                nearest = nearby_items[0]
+                response_text = (
+                    f"GPS coordinates received ({lat:.4f}, {lon:.4f}). Found {len(nearby_items)} nearby facilities within 30 km. "
+                    f"Nearest: {nearest.facility_name} ({nearest.distance_km:.1f} km away). "
+                    f"If this is a snakebite emergency, please confirm immediately or call 108 ambulance."
+                )
+                next_action = "CONFIRM_EMERGENCY"
+            elif effective_coords:
+                lat, lon = effective_coords
+                response_text = (
+                    f"GPS location received at ({lat:.4f}, {lon:.4f}). No PHC/CHC facilities found within 30 km. "
+                    f"In a snakebite emergency, contact 108 ambulance dispatch immediately."
+                )
+                next_action = "CALL_108"
+            else:
+                response_text = (
+                    "I am Dhwani-Sanjeevani emergency assistant. If this is a snakebite emergency, "
+                    "please tell me who was bitten and where you are, or ask for an operator."
+                )
+                next_action = "CLARIFY"
 
         # Prepare referral output if case has active referral
         if case_obj and case_obj.referral_facility_id:

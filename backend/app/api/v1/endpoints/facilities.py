@@ -10,10 +10,92 @@ from app.schemas.facility import (
     ASVStatusResponse,
     FacilityListResponse,
 )
-from app.schemas.common import FacilityTypeEnum
+from app.schemas.common import FacilityTypeEnum, ASVStatusEnum
 from app.services.facility_service import facility_service
 
 router = APIRouter(prefix="/facilities", tags=["Facilities & ASV Inventory"])
+
+
+@router.get(
+    "/nearby",
+    response_model=FacilityNearbyResponse,
+    summary="Search Nearest PHCs/CHCs by GPS Coordinates (GET)",
+    description=(
+        "Performs fast spatial radius lookup using a Haversine BallTree index across "
+        "34,936 validated health facilities. Accepts query parameters for latitude, longitude, "
+        "radius_km, and limit. Ideal for direct Flutter/mobile GPS client integration."
+    ),
+)
+async def find_nearby_facilities_get(
+    latitude: float = Query(
+        ...,
+        ge=-90.0,
+        le=90.0,
+        description="User or incident latitude in decimal degrees (-90 to 90)",
+    ),
+    longitude: float = Query(
+        ...,
+        ge=-180.0,
+        le=180.0,
+        description="User or incident longitude in decimal degrees (-180 to 180)",
+    ),
+    radius_km: float = Query(
+        30.0,
+        gt=0.0,
+        le=150.0,
+        description="Search radius in kilometres (max 150 km)",
+    ),
+    limit: int = Query(
+        10,
+        ge=1,
+        le=50,
+        description="Maximum number of facilities to return (1 to 50)",
+    ),
+    facility_type: Optional[FacilityTypeEnum] = Query(
+        None,
+        description="Optional filter: 'PHC' or 'CHC'",
+    ),
+    state_name: Optional[str] = Query(
+        None,
+        description="Optional filter by state name",
+    ),
+    district_name: Optional[str] = Query(
+        None,
+        description="Optional filter by district name",
+    ),
+    asv_status: Optional[ASVStatusEnum] = Query(
+        None,
+        description="Optional filter by ASV stock status (AVAILABLE, OUT_OF_STOCK, UNKNOWN)",
+    ),
+) -> FacilityNearbyResponse:
+    import math
+    if math.isnan(latitude) or math.isnan(longitude) or math.isnan(radius_km):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Coordinate and radius parameters must be finite numbers, not NaN.",
+        )
+    if math.isinf(latitude) or math.isinf(longitude) or math.isinf(radius_km):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Coordinate and radius parameters must be finite numbers, not Infinity.",
+        )
+    try:
+        query = FacilityNearbyQuery(
+            latitude=latitude,
+            longitude=longitude,
+            radius_km=radius_km,
+            limit=limit,
+            facility_type=facility_type,
+            state_name=state_name,
+            district_name=district_name,
+            asv_status=asv_status,
+        )
+        return facility_service.search_nearby(query)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
 
 
 @router.post(

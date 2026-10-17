@@ -144,6 +144,7 @@ class GeoSpatialIndex:
                     state_name=fac["state_name"],
                     district_name=fac["district_name"],
                     subdistrict_name=fac.get("subdistrict_name") or None,
+                    facility_address=fac.get("facility_address") or None,
                     latitude=fac["latitude"],
                     longitude=fac["longitude"],
                     distance_km=dist_km,
