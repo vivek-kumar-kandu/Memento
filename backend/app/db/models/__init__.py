@@ -7,6 +7,7 @@ from app.db.models.facility import (
     InventoryDataMode,
     VerificationSource,
 )
+from app.db.models.case import EmergencyCase, CaseStatus, Channel
 
 __all__ = [
     "HealthcareFacility",
@@ -16,4 +17,7 @@ __all__ = [
     "ASVStockStatus",
     "InventoryDataMode",
     "VerificationSource",
+    "EmergencyCase",
+    "CaseStatus",
+    "Channel",
 ]
