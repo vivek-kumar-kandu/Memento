@@ -7,7 +7,9 @@ from app.db.models.facility import (
     InventoryDataMode,
     VerificationSource,
 )
-from app.db.models.case import EmergencyCase, CaseStatus, Channel
+from app.schemas.common import Channel, CaseStatus, ReferralStatus
+from app.db.models.case import EmergencyCase
+from app.db.models.conversation import ConversationSession
 
 __all__ = [
     "HealthcareFacility",
@@ -18,6 +20,9 @@ __all__ = [
     "InventoryDataMode",
     "VerificationSource",
     "EmergencyCase",
+    "ConversationSession",
     "CaseStatus",
     "Channel",
+    "ReferralStatus",
 ]
+

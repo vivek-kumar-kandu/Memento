@@ -17,8 +17,19 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
 
-    # CORS
-    BACKEND_CORS_ORIGINS: List[str] = ["*"]
+    # Server binding
+    HOST: str = "127.0.0.1"
+    PORT: int = 8000
+
+    # CORS: Scoped default origins for local development (Flutter web, local dashboards)
+    BACKEND_CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "http://localhost:5000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8080",
+        "http://127.0.0.1:5000",
+    ]
 
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./dhwani_sanjeevani.db"

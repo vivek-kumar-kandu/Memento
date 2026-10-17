@@ -3,6 +3,30 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
 
+class Channel(str, enum.Enum):
+    IVR = "IVR"
+    WHATSAPP = "WHATSAPP"
+    FLUTTER = "FLUTTER"
+
+
+class CaseStatus(str, enum.Enum):
+    NEW = "NEW"
+    IN_PROGRESS = "IN_PROGRESS"
+    TRIAGED = "TRIAGED"
+    REFERRAL_MADE = "REFERRAL_MADE"
+    RESOLVED = "RESOLVED"
+    CLOSED = "CLOSED"
+    CANCELLED = "CANCELLED"
+
+
+class ReferralStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    SENT = "SENT"
+    ACKNOWLEDGED = "ACKNOWLEDGED"
+    REJECTED = "REJECTED"
+    COMPLETED = "COMPLETED"
+
+
 class FacilityTypeEnum(str, enum.Enum):
     PHC = "PHC"
     CHC = "CHC"
