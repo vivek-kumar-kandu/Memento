@@ -240,9 +240,9 @@ class PatientHomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Nearby Facilities Header (Placeholder)
+              // Nearby Facilities Header
               const Text(
-                'Nearby Health Facilities (Prototype)',
+                'Nearby Healthcare Facilities',
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
@@ -251,8 +251,38 @@ class PatientHomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Sample local facilities. Live GPS verification requires active backend.',
-                style: TextStyle(fontSize: 13, color: AppTheme.sanjeeviniTextMuted),
+                'Discover closest verified PHCs and CHCs using GPS or village search. Anti-snake venom availability is unverified until confirmed.',
+                style: TextStyle(fontSize: 13, color: AppTheme.sanjeeviniTextMuted, height: 1.3),
+              ),
+              const SizedBox(height: 12),
+
+              // Primary "Use My Current Location" Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  key: const Key('patient_use_current_location_button'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.sanjeeviniPrimary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HomeScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.my_location, size: 20),
+                  label: const Text(
+                    'Use My Current Location',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
 
@@ -273,35 +303,6 @@ class PatientHomeScreen extends StatelessWidget {
                 distance: '9.8 km away',
                 status: 'Sample Facility (Unverified Stock)',
                 statusColor: Colors.orange.shade800,
-              ),
-              const SizedBox(height: 16),
-
-              // Live Finder Button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.sanjeeviniTextDark,
-                    side: const BorderSide(color: AppTheme.sanjeeviniBorder, width: 1.2),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const HomeScreen(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.location_searching, size: 18),
-                  label: const Text(
-                    'Open Live GPS Facility Locator',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
               ),
             ],
           ),
