@@ -1,0 +1,76 @@
+{
+  "random_seed": 42,
+  "dataset_total_samples": 142,
+  "dataset_groups": 99,
+  "train_samples": 103,
+  "test_samples": 39,
+  "held_out_accuracy": 0.8205128205128205,
+  "held_out_classification_report": {
+    "emergency_report": {
+      "precision": 0.8888888888888888,
+      "recall": 0.8888888888888888,
+      "f1-score": 0.8888888888888888,
+      "support": 9.0
+    },
+    "location_response": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 3.0
+    },
+    "symptom_report": {
+      "precision": 0.7142857142857143,
+      "recall": 1.0,
+      "f1-score": 0.8333333333333334,
+      "support": 5.0
+    },
+    "first_aid_query": {
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "f1-score": 0.8,
+      "support": 6.0
+    },
+    "repeat_request": {
+      "precision": 1.0,
+      "recall": 0.6666666666666666,
+      "f1-score": 0.8,
+      "support": 6.0
+    },
+    "human_help": {
+      "precision": 0.8571428571428571,
+      "recall": 0.8571428571428571,
+      "f1-score": 0.8571428571428571,
+      "support": 7.0
+    },
+    "unknown": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 3.0
+    },
+    "accuracy": 0.8205128205128205,
+    "macro avg": {
+      "precision": 0.7324263038548752,
+      "recall": 0.7732426303854875,
+      "f1-score": 0.7399092970521541,
+      "support": 39.0
+    },
+    "weighted avg": {
+      "precision": 0.7838827838827839,
+      "recall": 0.8205128205128205,
+      "f1-score": 0.788888888888889,
+      "support": 39.0
+    }
+  },
+  "intents": [
+    "emergency_report",
+    "location_response",
+    "symptom_report",
+    "first_aid_query",
+    "repeat_request",
+    "human_help",
+    "unknown"
+  ],
+  "model_pipeline": "TfidfVectorizer(char_wb, 2-5) + LogisticRegression(balanced)",
+  "limitations": "Model is an intent router trained on domain-specific emergency utterances in English, Devanagari Hindi, and Hinglish. It does NOT diagnose venom type, identify snake species, or assess clinical severity."
+}

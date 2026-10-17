@@ -1,0 +1,20 @@
+# Python & FastAPI Bytecode and Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local SQLite databases
+*.db
+*.sqlite3
+*.db-journal
+
+# Local Environment variables
+.env
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
