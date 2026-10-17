@@ -184,3 +184,102 @@ async def test_list_facilities_with_state_filter(client: AsyncClient):
     assert len(data["facilities"]) <= 10
     for f in data["facilities"]:
         assert "goa" in f["state_name"].lower()
+
+
+@pytest.mark.asyncio
+async def test_nearby_facilities_get_endpoint_success(client: AsyncClient):
+    """Test Flutter-style GET /api/v1/facilities/nearby with query parameters."""
+    response = await client.get(
+        "/api/v1/facilities/nearby",
+        params={
+            "latitude": 26.8467,
+            "longitude": 80.9462,
+            "radius_km": 25.0,
+            "limit": 5,
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_found"] > 0
+    assert len(data["facilities"]) <= 5
+    assert data["query_latitude"] == 26.8467
+    assert data["query_longitude"] == 80.9462
+
+    # Verify distance ordering and facility fields
+    distances = [f["distance_km"] for f in data["facilities"]]
+    assert distances == sorted(distances)
+    for f in data["facilities"]:
+        assert f["distance_km"] <= 25.0
+        assert f["asv_stock_status"] == "UNKNOWN"
+        assert f["asv_quantity_vials"] is None
+        assert f["asv_verification_source"] == "NOT_VERIFIED"
+        assert "facility_address" in f
+
+
+@pytest.mark.asyncio
+async def test_nearby_facilities_get_missing_coords(client: AsyncClient):
+    """Test 422 validation error when required GET query parameters are missing."""
+    # Missing longitude
+    res1 = await client.get("/api/v1/facilities/nearby", params={"latitude": 26.8467})
+    assert res1.status_code == 422
+
+    # Missing latitude
+    res2 = await client.get("/api/v1/facilities/nearby", params={"longitude": 80.9462})
+    assert res2.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_nearby_facilities_get_out_of_bounds_coords(client: AsyncClient):
+    """Test 422 validation when coordinates violate geographic bounds."""
+    # Latitude > 90
+    res1 = await client.get(
+        "/api/v1/facilities/nearby",
+        params={"latitude": 105.0, "longitude": 80.0},
+    )
+    assert res1.status_code == 422
+
+    # Longitude > 180
+    res2 = await client.get(
+        "/api/v1/facilities/nearby",
+        params={"latitude": 25.0, "longitude": 195.0},
+    )
+    assert res2.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_nearby_facilities_nan_and_inf_rejected(client: AsyncClient):
+    """Test that NaN and Infinity coordinates are rejected with 422 for both GET and POST."""
+    # POST with NaN
+    res_post_nan = await client.post(
+        "/api/v1/facilities/nearby",
+        json={"latitude": "NaN", "longitude": 80.9462},
+    )
+    assert res_post_nan.status_code == 422
+
+    # POST with Infinity
+    res_post_inf = await client.post(
+        "/api/v1/facilities/nearby",
+        json={"latitude": "Infinity", "longitude": 80.9462},
+    )
+    assert res_post_inf.status_code == 422
+
+    # GET with NaN
+    res_get_nan = await client.get(
+        "/api/v1/facilities/nearby",
+        params={"latitude": "nan", "longitude": 80.9462},
+    )
+    assert res_get_nan.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_nearby_facilities_get_empty_results(client: AsyncClient):
+    """Test query returning valid empty result without inventing facilities."""
+    res = await client.get(
+        "/api/v1/facilities/nearby",
+        params={"latitude": 0.0, "longitude": 0.0, "radius_km": 10.0},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total_found"] == 0
+    assert data["facilities"] == []
+    assert "safety_disclaimer" in data

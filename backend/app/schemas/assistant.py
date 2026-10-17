@@ -1,9 +1,50 @@
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, ConfigDict
+from typing import List, Optional, Dict, Any, Union
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 
 from app.schemas.common import Channel
 from app.schemas.facility import FacilityNearbyItem
 from app.schemas.case import ReferralInfo
+
+
+class GPSLocationPayload(BaseModel):
+    latitude: Optional[float] = Field(
+        None,
+        ge=-90.0,
+        le=90.0,
+        description="Client device GPS latitude in decimal degrees (-90 to 90)",
+    )
+    longitude: Optional[float] = Field(
+        None,
+        ge=-180.0,
+        le=180.0,
+        description="Client device GPS longitude in decimal degrees (-180 to 180)",
+    )
+    accuracy_m: Optional[float] = Field(
+        None,
+        ge=0.0,
+        description="Reported client-device GPS horizontal accuracy in meters (informational metadata, not proof of location authenticity)",
+    )
+    village: Optional[str] = Field(None, description="Optional user-reported village, town, or subdistrict")
+    landmark: Optional[str] = Field(None, description="Optional user-reported landmark or address context")
+
+    @field_validator("latitude", "longitude", "accuracy_m", mode="after")
+    @classmethod
+    def validate_finite(cls, v: Optional[float]) -> Optional[float]:
+        if v is not None:
+            import math
+            if math.isnan(v) or math.isinf(v):
+                raise ValueError("Location numeric values must be finite numbers, not NaN or Infinity")
+        return v
+
+    @model_validator(mode="after")
+    def check_coords_pair(self) -> "GPSLocationPayload":
+        has_lat = self.latitude is not None
+        has_lon = self.longitude is not None
+        if has_lat != has_lon:
+            raise ValueError("Both latitude and longitude must be provided together.")
+        return self
+
+    model_config = ConfigDict(extra="allow")
 
 
 class AssistantMessageRequest(BaseModel):
@@ -11,7 +52,10 @@ class AssistantMessageRequest(BaseModel):
     conversation_id: Optional[str] = Field(None, description="Existing conversation session ID or None for new session")
     message: str = Field(..., min_length=1, description="Caller utterance, user text, or transcript")
     case_id: Optional[str] = Field(None, description="Active emergency case ID if known")
-    location: Optional[Dict[str, Any]] = Field(None, description="Optional GPS coordinates or location context")
+    location: Optional[GPSLocationPayload] = Field(
+        None,
+        description="Optional GPS coordinates (e.g. {'latitude': 26.8467, 'longitude': 80.9462, 'accuracy_m': 15.0}) or location context",
+    )
     context: Optional[Dict[str, Any]] = Field(None, description="Optional conversation context from caller/app")
 
 

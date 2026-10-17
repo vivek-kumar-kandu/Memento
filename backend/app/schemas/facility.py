@@ -52,6 +52,14 @@ class FacilityNearbyQuery(BaseModel):
         description="Optional filter by ASV stock status (AVAILABLE, OUT_OF_STOCK, UNKNOWN)",
     )
 
+    @field_validator("latitude", "longitude", "radius_km", mode="after")
+    @classmethod
+    def validate_finite_coords(cls, v: float) -> float:
+        import math
+        if math.isnan(v) or math.isinf(v):
+            raise ValueError("Coordinate and radius values must be finite numbers, not NaN or Infinity")
+        return v
+
 
 class FacilityNearbyItem(BaseModel):
     facility_id: str
@@ -60,6 +68,7 @@ class FacilityNearbyItem(BaseModel):
     state_name: str
     district_name: str
     subdistrict_name: Optional[str] = None
+    facility_address: Optional[str] = None
     latitude: float
     longitude: float
     distance_km: float = Field(..., description="Great-circle distance in kilometres")
