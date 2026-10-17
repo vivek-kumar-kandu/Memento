@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sanjeevini | Voice-First Snakebite Emergency Assistance Platform</title>
+  <meta name="description" content="Sanjeevini is a multi-channel emergency response platform for rural India connecting patients, ASHA workers, and healthcare facilities via Flutter Mobile App, IVR Telephony, and WhatsApp.">
+  <meta name="keywords" content="Snakebite Emergency, Sanjeevini, ASV, Anti-Snake Venom, Rural Healthcare India, IVR Emergency, ASHA Worker, Telephony Health">
+  <meta name="author" content="Sanjeevini Project Team">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Sanjeevini - Snakebite Emergency Platform">
+  <meta property="og:description" content="Multi-channel emergency coordination platform saving lives in rural India through GPS hospital discovery, ASHA readiness tracking, and tri-channel assistance.">
+  <meta property="og:type" content="website">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Ambient Background Canvas -->
+  <div class="bg-ambient"></div>
+  <div class="bg-grid-overlay"></div>
+
+  <!-- Top Emergency Action Banner -->
+  <div class="top-emergency-bar">
+    <div class="container" style="display:flex; justify-content:center; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+      <span class="pulse-dot" style="background:#ff3b57;"></span>
+      <strong>CRITICAL EMERGENCY:</strong> Suspected snakebite? Keep patient still. Dial 
+      <a href="tel:108" id="top-bar-108-link">108 National Ambulance</a> or 
+      <a href="tel:18001801104" id="top-bar-helpline-link">National Poison Helpline (1800-180-1104)</a>.
+    </div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="#" class="brand-logo" id="nav-brand-logo">
+        <div class="brand-icon">⚕️</div>
+        <div class="brand-text">SANJEEVINI<span>.</span></div>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#overview" id="nav-link-overview">Overview</a></li>
+          <li><a href="#first-aid" id="nav-link-firstaid">First Aid Protocol</a></li>
+          <li><a href="#channels" id="nav-link-channels">Tri-Channel Solution</a></li>
+          <li><a href="#data-engine" id="nav-link-data">Facility & ASV Engine</a></li>
+          <li><a href="#products" id="nav-link-products">Safety Gear</a></li>
+          <li><a href="#api-spec" id="nav-link-api">API Contract</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="#channels" class="btn btn-outline" id="nav-btn-explore">Experience Demo</a>
+        <a href="tel:108" class="btn btn-emergency" id="nav-btn-call-108">
+          <span>🚨</span> Call 108 Ambulance
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main>
+    <section class="hero-section" id="overview">
+      <div class="container hero-grid">
+        <div class="hero-content">
+          <div class="badge badge-emergency">
+            <span class="pulse-dot"></span>
+            WHO Priority Neglected Tropical Disease Solution
+          </div>
+          <h1 class="hero-title">
+            Voice-First Snakebite <span class="gradient-text-red">Emergency Response</span> Across Rural India
+          </h1>
+          <p class="hero-subtitle">
+            Every minute matters during an envenomation. <strong>Sanjeevini</strong> bridges the critical delay between bite and anti-snake venom (ASV) treatment by unifying <strong>Flutter Mobile</strong>, <strong>Telephone IVR</strong>, and <strong>WhatsApp</strong> onto a single high-speed coordination backend.
+          </p>
+
+          <div class="hero-cta-group">
+            <a href="#channels" class="btn btn-cyan" id="hero-btn-explore-channels">
+              <span>⚡</span> Explore All 3 Channels
+            </a>
+            <a href="#first-aid" class="btn btn-outline" id="hero-btn-guidelines">
+              <span>📋</span> Safe First Aid Protocol
+            </a>
+          </div>
+
+          <div class="hero-trust-bar">
+            <div class="trust-item">
+              <h4>34,936+</h4>
+              <p>PHCs & CHCs Geocoded</p>
+            </div>
+            <div class="trust-item">
+              <h4>3 Channels</h4>
+              <p>Mobile, IVR & WhatsApp</p>
+            </div>
+            <div class="trust-item">
+              <h4>100% Verified</h4>
+              <p>ASV Safety Transparency</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero Emergency Visualizer Card -->
+        <div class="hero-visual-card">
+          <div class="sos-beacon">
+            <div class="beacon-pulse">🚨</div>
+            <div class="beacon-text">
+              <h3>Live Incident Coordinator</h3>
+              <p>Active multi-channel routing engine</p>
+            </div>
+          </div>
+
+          <div class="hero-card-channels">
+            <div class="channel-pill-item">
+              <div class="channel-pill-left">
+                <div class="channel-mini-icon icon-flutter">📱</div>
+                <div class="channel-info">
+                  <h4>Flutter Mobile Client</h4>
+                  <p>GPS phone capture & ASHA portal</p>
+                </div>
+              </div>
+              <span class="badge badge-emerald">Online</span>
+            </div>
+
+            <div class="channel-pill-item">
+              <div class="channel-pill-left">
+                <div class="channel-mini-icon icon-ivr">📞</div>
+                <div class="channel-info">
+                  <h4>Telephone IVR Service</h4>
+                  <p>Multilingual voice & feature phones</p>
+                </div>
+              </div>
+              <span class="badge badge-amber">Port 8001</span>
+            </div>
+
+            <div class="channel-pill-item">
+              <div class="channel-pill-left">
+                <div class="channel-mini-icon icon-whatsapp">💬</div>
+                <div class="channel-info">
+                  <h4>WhatsApp Business Bot</h4>
+                  <p>One-tap location pin & hospital cards</p>
+                </div>
+              </div>
+              <span class="badge badge-emerald">Active</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: GOLDEN FIRST AID PROTOCOL (DOs & DON'Ts) -->
+    <section class="section-py" id="first-aid">
+      <div class="container">
+        <div class="section-header">
+          <div class="badge badge-emergency section-tag">Medical Advisory Guidelines</div>
+          <h2 class="section-title">The Golden First Aid Protocol</h2>
+          <p class="section-subtitle">
+            Harmful traditional practices kill more snakebite victims in rural areas than venom alone. Sanjeevini strictly follows <strong>National Action Plan for Prevention & Control of Snakebite Envenoming (NAPSE)</strong> and WHO protocols.
+          </p>
+        </div>
+
+        <div class="protocol-card">
+          <div class="protocol-banner-urgent">
+            <div class="urgent-icon">⚠️</div>
+            <div class="urgent-text">
+              <h3>NEVER DELAY MEDICAL TRANSPORTATION</h3>
+              <p>Do not wait for symptoms to appear before seeking care. A harmless-looking bite can cause sudden neurotoxic respiratory failure or hemotoxic bleeding within hours.</p>
+            </div>
+          </div>
+
+          <div class="protocol-columns">
+            <!-- DOs Column -->
+            <div class="dos-column">
+              <div class="protocol-heading heading-dos">
+                <span>✅</span> WHAT YOU MUST DO
+              </div>
+              <ul class="protocol-list">
+                <li class="protocol-item">
+                  <div class="item-badge-icon item-badge-dos">1</div>
+                  <div class="item-content">
+                    <h4>Keep the Patient Completely Still & Calm</h4>
+                    <p>Panic increases heart rate and accelerates systemic venom circulation. Keep the person lying down or comfortably seated.</p>
+                  </div>
+                </li>
+                <li class="protocol-item">
+                  <div class="item-badge-icon item-badge-dos">2</div>
+                  <div class="item-content">
+                    <h4>Immobilize the Bitten Limb</h4>
+                    <p>Splint the bitten extremity loosely using a stick, rolled cloth, or crepe bandage just like a bone fracture. Prevent joint movement.</p>
+                  </div>
+                </li>
+                <li class="protocol-item">
+                  <div class="item-badge-icon item-badge-dos">3</div>
+                  <div class="item-content">
+                    <h4>Remove Rings, Watches & Constrictive Shoes</h4>
+                    <p>Swelling develops rapidly in cytotoxic and viper bites. Constrictive items cause severe ischemia and gangrene if not removed early.</p>
+                  </div>
+                </li>
+                <li class="protocol-item">
+                  <div class="item-badge-icon item-badge-dos">4</div>
+                  <div class="item-content">
+                    <h4>Rush Immediately to a PHC/CHC with ASV</h4>
+                    <p>Call 108 Emergency Ambulance or transport by vehicle. Anti-Snake Venom is the only true therapeutic antidote.</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <!-- DON'Ts Column -->
+            <div class="donts-column">
+              <div class="protocol-heading heading-donts">
+                <span>❌</span> STRICT PROHIBITIONS (DO NOT DO)
+              </div>
+              <ul class="protocol-list">
+                <li class="protocol-item">
+                  <div class="item-badge-icon item-badge-donts">1</div>
+                  <div class="item-content">
+                    <h4>DO NOT Cut or Incise the Bite Area</h4>
+                    <p>Slashing the wound severs arteries, causes uncontrollable bleeding in viper bites, and introduces deadly secondary bacterial infections.</p>
+                  </div>
+                </li>
+                <li class="protocol-item">
+                  <div class="item-badge-icon item-badge-donts">2</div>
+                  <div class="item-content">
+                    <h4>DO NOT Attempt to Suck Out Venom</h4>
+                    <p>Suction devices, mouths, or extraction pumps remove negligible venom while inflicting extensive tissue necrosis and mucosal poisoning.</p>
+                  </div>
+                </li>
+                <li class="protocol-item">
+                  <div class="item-badge-icon item-badge-donts">3</div>
+                  <div class="item-content">
+                    <h4>DO NOT Tie Tight Tourniquets or Ropes</h4>
+                    <p>Cutting off arterial blood flow causes severe localized tissue death, limb amputation, and sudden cardiac shock when released.</p>
+                  </div>
+                </li>
+                <li class="protocol-item">
+                  <div class="item-badge-icon item-badge-donts">4</div>
+                  <div class="item-content">
+                    <h4>DO NOT Visit Faith Healers or Apply Herbs</h4>
+                    <p>Every hour spent visiting faith healers (ojhas/tantriks) or applying cow dung and herbal pastes increases mortality exponentially.</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: THE TRI-CHANNEL ARCHITECTURE SHOWCASE (CORE FEATURE) -->
+    <section class="section-py" id="channels" style="background: rgba(13, 20, 36, 0.4);">
+      <div class="container">
+        <div class="section-header">
+          <div class="badge badge-emerald section-tag">Universal Multi-Channel Access</div>
+          <h2 class="section-title">The Three Integrated Channels</h2>
+          <p class="section-subtitle">
+            Digital inequality must not determine emergency survival. Sanjeevini delivers identical, life-saving protocols across smartphone apps, ordinary keypad feature phones, and ubiquitous messaging.
+          </p>
+        </div>
+
+        <!-- Channel Navigation Tabs -->
+        <div class="tri-channel-nav">
+          <button class="tab-btn active" data-tab="pane-flutter" id="tab-btn-flutter">
+            <span>📱</span> Channel 1: Flutter Mobile App
+          </button>
+          <button class="tab-btn" data-tab="pane-ivr" id="tab-btn-ivr">
+            <span>📞</span> Channel 2: Telephone IVR Voice
+          </button>
+          <button class="tab-btn" data-tab="pane-whatsapp" id="tab-btn-whatsapp">
+            <span>💬</span> Channel 3: WhatsApp Chatbot
+          </button>
+        </div>
+
+        <!-- PANE 1: FLUTTER MOBILE APP -->
+        <div class="tab-pane active" id="pane-flutter">
+          <div class="channel-interactive-grid">
+            <div class="channel-info-side">
+              <div class="badge badge-emerald">Native Mobile Experience</div>
+              <h3>Flutter Mobile Application</h3>
+              <p class="channel-description">
+                Tailored for patients, family caregivers, and accredited social health activists (ASHA). It captures high-precision device GPS, queries the nearest geocoded healthcare facilities from the backend, and provides an authenticated portal for ASHA workers to record facility readiness.
+              </p>
+
+              <div class="feature-pill-grid">
+                <div class="feature-pill-card">
+                  <h4><span>🛰️</span> Real Phone GPS</h4>
+                  <p>Acquires device coordinates via Geolocator with fallback to manual village/landmark search.</p>
+                </div>
+                <div class="feature-pill-card">
+                  <h4><span>🧭</span> Haversine Proximity</h4>
+                  <p>Calculates exact straight-line distance to nearby PHCs/CHCs with direct Google Maps route links.</p>
+                </div>
+                <div class="feature-pill-card">
+                  <h4><span>👩‍⚕️</span> ASHA Worker Mode</h4>
+                  <p>Authenticated role allowing community health workers to submit real-time ASV stock updates.</p>
+                </div>
+                <div class="feature-pill-card">
+                  <h4><span>🛡️</span> Offline Protocol Cache</h4>
+                  <p>First aid guidance and emergency contacts remain accessible even when cellular internet drops.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Phone Device Frame Simulator: Flutter App -->
+            <div class="device-container">
+              <div class="phone-mockup">
+                <div class="phone-notch">
+                  <div class="notch-speaker"></div>
+                  <div class="notch-cam"></div>
+                </div>
+
+                <div class="phone-screen">
+                  <!-- Mode Switcher -->
+                  <div class="flutter-mode-toggle">
+                    <button class="flutter-toggle-btn active" id="flutter-tab-patient">Patient Mode</button>
+                    <button class="flutter-toggle-btn" id="flutter-tab-asha">ASHA Worker</button>
+                  </div>
+
+                  <!-- Patient Screen View -->
+                  <div id="flutter-patient-view" style="display:flex; flex-direction:column; gap:0.8rem;">
+                    <div class="flutter-sos-banner">
+                      <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;">Emergency Assistance</div>
+                      <div style="font-size:1.15rem; font-weight:800; margin-top:0.2rem;">Suspected Snakebite</div>
+                      <button class="flutter-sos-btn" id="flutter-gps-btn">
+                        <span>📍</span> Lock GPS & Find Nearby Hospitals
+                      </button>
+                      <div id="flutter-gps-status" style="font-size:0.68rem; margin-top:0.4rem; color:#fee2e2;">
+                        Tap to acquire live phone GPS
+                      </div>
+                    </div>
+
+                    <div style="font-weight:700; font-size:0.82rem; color:#94a3b8; text-transform:uppercase;">
+                      Nearby Facilities
+                    </div>
+
+                    <div id="flutter-facility-list" style="display:flex; flex-direction:column; gap:0.6rem;">
+                      <div class="facility-card-mini">
+                        <div class="facility-card-header">
+                          <span class="facility-title">CHC Mohanlalganj</span>
+                          <span class="facility-badge-unknown">ASV UNKNOWN</span>
+                        </div>
+                        <div class="facility-meta">Community Health Centre • Lucknow, UP</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.3rem;">
+                          <span style="font-weight:700; color:#38bdf8; font-size:0.8rem;">📍 4.2 km away</span>
+                          <a href="#" class="directions-link">Get Directions ↗</a>
+                        </div>
+                      </div>
+
+                      <div class="facility-card-mini">
+                        <div class="facility-card-header">
+                          <span class="facility-title">PHC Gosainganj</span>
+                          <span class="facility-badge-unknown">ASV UNKNOWN</span>
+                        </div>
+                        <div class="facility-meta">Primary Health Centre • Lucknow, UP</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.3rem;">
+                          <span style="font-weight:700; color:#38bdf8; font-size:0.8rem;">📍 8.7 km away</span>
+                          <a href="#" class="directions-link">Get Directions ↗</a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- ASHA Screen View -->
+                  <div id="flutter-asha-view" style="display:none; flex-direction:column; gap:0.8rem;">
+                    <div style="background:#1e293b; border-radius:10px; padding:0.8rem; border:1px solid #334155;">
+                      <div style="font-size:0.75rem; color:#00e5a3; font-weight:700;">ASHA WORKER PORTAL</div>
+                      <div style="font-size:0.95rem; font-weight:800; color:#fff;">Sunita Devi (ID: AS-8201)</div>
+                      <div style="font-size:0.72rem; color:#94a3b8;">Primary Facility: CHC Mohanlalganj</div>
+                    </div>
+
+                    <form id="asha-readiness-form" style="display:flex; flex-direction:column; gap:0.6rem;">
+                      <label style="font-size:0.75rem; color:#cbd5e1; font-weight:600;">Update ASV Inventory Status:</label>
+                      <select id="asha-asv-status" style="background:#0f172a; border:1px solid #334155; color:#fff; padding:0.45rem; border-radius:6px; font-size:0.8rem;">
+                        <option value="AVAILABLE">AVAILABLE (Stock on hand)</option>
+                        <option value="OUT_OF_STOCK">OUT OF STOCK</option>
+                        <option value="UNKNOWN">UNKNOWN / PENDING AUDIT</option>
+                      </select>
+
+                      <label style="font-size:0.75rem; color:#cbd5e1; font-weight:600;">Verified Vials Count (optional):</label>
+                      <input type="number" id="asha-vials-count" value="12" style="background:#0f172a; border:1px solid #334155; color:#fff; padding:0.45rem; border-radius:6px; font-size:0.8rem;">
+
+                      <label style="font-size:0.75rem; color:#cbd5e1; font-weight:600;">Verification Source:</label>
+                      <select id="asha-verification-source" style="background:#0f172a; border:1px solid #334155; color:#fff; padding:0.45rem; border-radius:6px; font-size:0.8rem;">
+                        <option value="FACILITY_PORTAL">In-Person Audit</option>
+                        <option value="TELEPHONE_CALL">Telephone Call to MOIC</option>
+                      </select>
+
+                      <button type="submit" class="btn btn-cyan" style="padding:0.5rem; font-size:0.8rem; margin-top:0.3rem;">
+                        Submit Verified Readiness
+                      </button>
+                    </form>
+
+                    <div id="asha-sync-msg"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANE 2: TELEPHONE IVR VOICE SYSTEM -->
+        <div class="tab-pane" id="pane-ivr">
+          <div class="channel-interactive-grid">
+            <div class="channel-info-side">
+              <div class="badge badge-amber">Zero Digital Literacy Needed</div>
+              <h3>Telephone IVR Voice Assistant</h3>
+              <p class="channel-description">
+                Designed for victims and families with simple 2G feature phones, keypad mobiles, or limited literacy. Powered by the <strong>Edesy Telephony Interface</strong> and Sanjeevini IVR Adapter on port 8001, providing speech-to-text, text-to-speech, and dual-tone keypad navigation.
+              </p>
+
+              <div class="feature-pill-grid">
+                <div class="feature-pill-card">
+                  <h4><span>🗣️</span> Multilingual Voice Prompts</h4>
+                  <p>Communicates immediately in Hindi, English, and regional dialects to de-escalate panic.</p>
+                </div>
+                <div class="feature-pill-card">
+                  <h4><span>⚡</span> Rapid First-Aid Audios</h4>
+                  <p>Delivers the essential DOs and DON'Ts over voice within 10 seconds of connection.</p>
+                </div>
+                <div class="feature-pill-card">
+                  <h4><span>📍</span> Village/Tower Location</h4>
+                  <p>Captures location via pincode, village name speech recognition, or cell tower landmark.</p>
+                </div>
+                <div class="feature-pill-card">
+                  <h4><span>🚨</span> 108 Dispatch Relay</h4>
+                  <p>Offers automated patch-through to state emergency ambulance dispatchers.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- IVR Call Simulator Console -->
+            <div class="device-container">
+              <div class="ivr-console">
+                <div class="ivr-status-header">
+                  <div>
+                    <h4 style="font-size:1rem; font-weight:700;">Edesy IVR Engine</h4>
+                    <span style="font-size:0.75rem; color:#64748b;">Adapter: localhost:8001/health</span>
+                  </div>
+                  <div class="ivr-call-status" id="ivr-status-badge">
+                    <span class="pulse-dot" style="background:#ffaa00;"></span> READY TO CALL
+                  </div>
+                </div>
+
+                <!-- Animated Audio Waveform -->
+                <div class="audio-waveform">
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                  <div class="wave-bar"></div>
+                </div>
+
+                <!-- Call Transcript Box -->
+                <div class="ivr-transcript-box" id="ivr-transcript">
+                  <div class="transcript-line transcript-ivr">
+                    <strong>IVR System:</strong> Tap the green button below to simulate dialing the 24x7 Sanjeevini Helpline.
+                  </div>
+                </div>
+
+                <!-- Keypad Dialpad -->
+                <div class="ivr-dialpad-grid">
+                  <button class="dialpad-btn" data-num="1" id="dial-1">1<span>Hindi / Hospitals</span></button>
+                  <button class="dialpad-btn" data-num="2" id="dial-2">2<span>English / First Aid</span></button>
+                  <button class="dialpad-btn" data-num="3" id="dial-3">3<span>ASHA Connect</span></button>
+                  <button class="dialpad-btn" data-num="4" id="dial-4">4<span>GHI</span></button>
+                  <button class="dialpad-btn" data-num="5" id="dial-5">5<span>JKL</span></button>
+                  <button class="dialpad-btn" data-num="6" id="dial-6">6<span>MNO</span></button>
+                  <button class="dialpad-btn" data-num="7" id="dial-7">7<span>PQRS</span></button>
+                  <button class="dialpad-btn" data-num="8" id="dial-8">8<span>TUV</span></button>
+                  <button class="dialpad-btn" data-num="9" id="dial-9">9<span>WXYZ</span></button>
+                </div>
+
+                <!-- Controls -->
+                <div class="ivr-call-controls">
+                  <button class="call-btn-trigger call-btn-green" id="ivr-start-call" title="Start Emergency Call">
+                    📞
+                  </button>
+                  <button class="call-btn-trigger call-btn-red" id="ivr-end-call" title="Hang Up Call">
+                    📴
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANE 3: WHATSAPP BOT -->
+        <div class="tab-pane" id="pane-whatsapp">
+          <div class="channel-interactive-grid">
+            <div class="channel-info-side">
+              <div class="badge badge-emerald">Instant Messaging Integration</div>
+              <h3>WhatsApp Emergency Chatbot</h3>
+              <p class="channel-description">
+                WhatsApp is installed on over 500 million Indian phones. Sanjeevini leverages the WhatsApp Business API so any user can drop a native GPS pin from their chat screen and immediately receive prioritized nearby facility cards with turn-by-turn navigation.
+              </p>
+
+              <div class="feature-pill-grid">
+                <div class="feature-pill-card">
+                  <h4><span>📌</span> Native Location Pin</h4>
+                  <p>Users tap "Share Location" directly in WhatsApp chat without downloading any extra app.</p>
+                </div>
+                <div class="feature-pill-card">
+                  <h4><span>⚡</span> Fast Interactive Cards</h4>
+                  <p>Delivers clean structured message cards with facility distance, contact numbers, and maps links.</p>
+                </div>
+                <div class="feature-pill-card">
+                  <h4><span>📣</span> ASHA Dispatch Alert</h4>
+                  <p>Sends instant emergency notifications with patient location to local ASHA worker groups.</p>
+                </div>
+                <div class="feature-pill-card">
+                  <h4><span>📷</span> Photo Symptom Log</h4>
+                  <p>Enables uploading clear bite mark or snake photos for emergency doctor review without delaying transit.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- WhatsApp Chatbot Simulator -->
+            <div class="device-container">
+              <div class="phone-mockup whatsapp-phone">
+                <div class="phone-notch">
+                  <div class="notch-speaker"></div>
+                  <div class="notch-cam"></div>
+                </div>
+
+                <div class="wa-header">
+                  <div class="wa-avatar">🐍</div>
+                  <div class="wa-header-info">
+                    <h4>Sanjeevini Emergency Bot</h4>
+                    <p>Official Health Verified Account</p>
+                  </div>
+                </div>
+
+                <div class="phone-screen" style="padding:0.8rem; background:#0b141a;">
+                  <div class="wa-chat-canvas" id="wa-chat-canvas">
+                    <div class="wa-bubble wa-bubble-bot">
+                      👋 <strong>Namaste!</strong> This is the 24x7 Sanjeevini Emergency Assistant. If someone has suffered a suspected snakebite, please select an option or drop your GPS location pin below.
+                    </div>
+
+                    <div class="wa-quick-actions">
+                      <button class="wa-action-btn" data-prompt="Find Nearby Hospital with ASV" id="wa-btn-hospital">
+                        🏥 Find Nearby Hospital with ASV
+                      </button>
+                      <button class="wa-action-btn" data-prompt="What first aid should I give?" id="wa-btn-firstaid">
+                        🆘 Critical First Aid Guidance
+                      </button>
+                      <button class="wa-action-btn" data-prompt="Connect me to nearest ASHA worker" id="wa-btn-asha">
+                        👩‍⚕️ Alert Local ASHA Worker
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="wa-input-row">
+                    <input type="text" class="wa-input" id="wa-user-input" placeholder="Type a message or symptom...">
+                    <button class="wa-send-btn" id="wa-send-btn">➤</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: GEOSPATIAL SEARCH ENGINE & ASV READINESS DATA LAYER -->
+    <section class="section-py" id="data-engine">
+      <div class="container">
+        <div class="section-header">
+          <div class="badge badge-emerald section-tag">Geospatial Intelligence</div>
+          <h2 class="section-title">34,936 Facilities & Truth in ASV Readiness</h2>
+          <p class="section-subtitle">
+            An ordinary hospital directory does not guarantee that antivenom is in stock. Sanjeevini operates an in-memory <strong>Haversine BallTree index</strong> covering all 35,122 nationwide PHCs & CHCs with strict coordinate quarantine and transparent readiness classification.
+          </p>
+        </div>
+
+        <div class="data-engine-grid">
+          <div class="data-stats-stack">
+            <div class="stat-card-glass">
+              <div class="stat-num-box cyan">34.9k</div>
+              <div class="stat-info">
+                <h4>Geocoded Health Facilities</h4>
+                <p>29,733 Primary Health Centres (PHCs) and 5,389 Community Health Centres (CHCs) mapped within India's broad bounding box (6–38°N, 68–98°E).</p>
+              </div>
+            </div>
+
+            <div class="stat-card-glass">
+              <div class="stat-num-box amber">186</div>
+              <div class="stat-info">
+                <h4>Quarantined Anomalous Records</h4>
+                <p>Coordinates that fall in the ocean or outside India are quarantined to prevent misdirecting dying patients.</p>
+              </div>
+            </div>
+
+            <div class="stat-card-glass">
+              <div class="stat-num-box red">100%</div>
+              <div class="stat-info">
+                <h4>Safety Transparency (Zero False Hope)</h4>
+                <p>All baseline directory records strictly report ASV status as <strong>UNKNOWN / NOT_VERIFIED</strong> until live confirmation by authorized personnel.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive Nearby Facility Finder Demo -->
+          <div class="search-demo-container">
+            <h3 style="font-size:1.3rem; margin-bottom:0.5rem; color:#fff;">Interactive Facility Lookup Simulator</h3>
+            <p style="font-size:0.85rem; color:#94a3b8; margin-bottom:1.2rem;">
+              Filter across nationwide PHCs and CHCs indexed in the Sanjeevini spatial engine:
+            </p>
+
+            <div class="demo-search-bar">
+              <input type="text" class="demo-input" id="demo-location-input" placeholder="Search state, district, or facility (e.g. Lucknow, Gujarat, CHC, Pune)...">
+              <button class="btn btn-cyan" id="demo-search-btn">Search</button>
+            </div>
+
+            <div class="demo-results-list" id="demo-search-results">
+              <div class="demo-result-item">
+                <div>
+                  <div class="demo-res-title">CHC Mohanlalganj (CHC)</div>
+                  <div class="demo-res-location">Lucknow, Uttar Pradesh • Coordinates: 26.671°N, 80.982°E</div>
+                  <div style="margin-top:0.3rem;">
+                    <span class="facility-badge-unknown">ASV STOCK: UNKNOWN (UNVERIFIED)</span>
+                  </div>
+                </div>
+                <div class="demo-res-right">
+                  <div class="demo-res-dist">4.2 km</div>
+                  <span style="font-size:0.75rem; color:#64748b;">Direct Haversine</span>
+                </div>
+              </div>
+
+              <div class="demo-result-item">
+                <div>
+                  <div class="demo-res-title">PHC Gosainganj (PHC)</div>
+                  <div class="demo-res-location">Lucknow, Uttar Pradesh • Coordinates: 26.772°N, 81.121°E</div>
+                  <div style="margin-top:0.3rem;">
+                    <span class="facility-badge-unknown">ASV STOCK: UNKNOWN (UNVERIFIED)</span>
+                  </div>
+                </div>
+                <div class="demo-res-right">
+                  <div class="demo-res-dist">8.7 km</div>
+                  <span style="font-size:0.75rem; color:#64748b;">Direct Haversine</span>
+                </div>
+              </div>
+
+              <div class="demo-result-item">
+                <div>
+                  <div class="demo-res-title">CHC Keshod (CHC)</div>
+                  <div class="demo-res-location">Junagadh, Gujarat • Coordinates: 21.303°N, 70.252°E</div>
+                  <div style="margin-top:0.3rem;">
+                    <span class="facility-badge-unknown">ASV STOCK: UNKNOWN (UNVERIFIED)</span>
+                  </div>
+                </div>
+                <div class="demo-res-right">
+                  <div class="demo-res-dist">6.1 km</div>
+                  <span style="font-size:0.75rem; color:#64748b;">Direct Haversine</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="safety-note-alert">
+              <span>⚠️</span>
+              <div>
+                <strong>Safety Disclaimer:</strong> Baseline directory records provide geographic proximity only. Real-time ASV availability requires operational confirmation via 108 or health personnel.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: PREVENTION AND SAFETY PRODUCTS -->
+    <section class="section-py" id="products" style="background: rgba(13, 20, 36, 0.4);">
+      <div class="container">
+        <div class="section-header">
+          <div class="badge badge-emerald section-tag">Field Preparedness</div>
+          <h2 class="section-title">Prevention & Certified Safety Products</h2>
+          <p class="section-subtitle">
+            Most snakebites in agricultural India occur at dusk, during harvesting, or when walking in the dark. Sanjeevini highlights genuine, medically approved preventive equipment.
+          </p>
+        </div>
+
+        <div class="products-grid">
+          <!-- Product 1 -->
+          <div class="product-card">
+            <div class="product-img-box">
+              🔦
+              <span class="product-badge-safety">Verified Gear</span>
+            </div>
+            <div class="product-body">
+              <h4 class="product-title">High-Lumen Outdoor LED Torch</h4>
+              <p class="product-desc">Rechargeable 1200-lumen wide-beam flashlight. Prevents nocturnal snake step-ons along rural paths and field bunds.</p>
+              <div class="product-footer">
+                <div class="product-price">Est. <strong>₹449</strong></div>
+                <span style="font-size:0.75rem; color:#94a3b8;">Preventive Equipment</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product 2 -->
+          <div class="product-card">
+            <div class="product-img-box">
+              🥾
+              <span class="product-badge-safety">Certified</span>
+            </div>
+            <div class="product-body">
+              <h4 class="product-title">Puncture-Resistant Knee Gumboots</h4>
+              <p class="product-desc">Heavy-duty industrial rubber safety boots preventing over 85% of lower-leg viper and krait strikes during farming.</p>
+              <div class="product-footer">
+                <div class="product-price">Est. <strong>₹699</strong></div>
+                <span style="font-size:0.75rem; color:#94a3b8;">Farmer Protection</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product 3 -->
+          <div class="product-card">
+            <div class="product-img-box">
+              🩹
+              <span class="product-badge-safety">WHO Approved</span>
+            </div>
+            <div class="product-body">
+              <h4 class="product-title">Crepe Compression Splint Bandages</h4>
+              <p class="product-desc">Wide elasticized crepe bandages (10cm & 15cm) for safe limb immobilization without cutting off arterial circulation.</p>
+              <div class="product-footer">
+                <div class="product-price">Est. <strong>₹180</strong></div>
+                <span style="font-size:0.75rem; color:#94a3b8;">First Aid Essential</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product 4 -->
+          <div class="product-card">
+            <div class="product-img-box">
+              🪝
+              <span class="product-badge-safety">Rescue Tool</span>
+            </div>
+            <div class="product-body">
+              <h4 class="product-title">Telescopic Humane Snake Hook</h4>
+              <p class="product-desc">Stainless steel extendable rescue stick (1.2m) for safe, distance-controlled relocation from homes and cattle sheds.</p>
+              <div class="product-footer">
+                <div class="product-price">Est. <strong>₹850</strong></div>
+                <span style="font-size:0.75rem; color:#94a3b8;">Non-Harmful Catch</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:2.5rem; text-align:center;">
+          <div class="badge badge-amber" style="padding:0.6rem 1.2rem; font-size:0.85rem;">
+            🚫 <strong>SAFETY WARNING:</strong> Sanjeevini strictly prohibits listing venom extractors, suction pumps, or tourniquets, which are condemned by international medical consensus.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: UNIFIED FASTAPI BACKEND ARCHITECTURE & API CONTRACT -->
+    <section class="section-py" id="api-spec">
+      <div class="container">
+        <div class="section-header">
+          <div class="badge badge-emerald section-tag">Developer Specifications</div>
+          <h2 class="section-title">Unified FastAPI Backend & API Contract</h2>
+          <p class="section-subtitle">
+            All three channels connect to a common Python FastAPI backend engine powered by asynchronous SQLite (`aiosqlite`) and Scikit-Learn BallTree geospatial indices.
+          </p>
+        </div>
+
+        <div class="api-spec-card">
+          <div class="api-tabs-header">
+            <div class="api-tab-item active" data-endpoint="nearby" id="api-tab-nearby">
+              POST /api/v1/facilities/nearby
+            </div>
+            <div class="api-tab-item" data-endpoint="asvStatus" id="api-tab-asv">
+              GET /api/v1/facilities/{id}/asv-status
+            </div>
+            <div class="api-tab-item" data-endpoint="emergencyLocation" id="api-tab-location">
+              POST /api/v1/emergencies/{id}/location
+            </div>
+          </div>
+
+          <div class="api-code-block" id="api-code-content">
+            <pre><code>{
+  <span class="token-key">"query_latitude"</span>: <span class="token-num">26.8467</span>,
+  <span class="token-key">"query_longitude"</span>: <span class="token-num">80.9462</span>,
+  <span class="token-key">"search_radius_km"</span>: <span class="token-num">30.0</span>,
+  <span class="token-key">"total_found"</span>: <span class="token-num">1</span>,
+  <span class="token-key">"facilities"</span>: [
+    {
+      <span class="token-key">"facility_id"</span>: <span class="token-str">"HCF-014923"</span>,
+      <span class="token-key">"facility_name"</span>: <span class="token-str">"CHC Mohanlalganj"</span>,
+      <span class="token-key">"facility_type"</span>: <span class="token-str">"CHC"</span>,
+      <span class="token-key">"distance_km"</span>: <span class="token-num">4.2</span>,
+      <span class="token-key">"asv_stock_status"</span>: <span class="token-str">"UNKNOWN"</span>,
+      <span class="token-key">"asv_quantity_vials"</span>: <span class="token-bool">null</span>,
+      <span class="token-key">"asv_verification_source"</span>: <span class="token-str">"NOT_VERIFIED"</span>
+    }
+  ],
+  <span class="token-key">"safety_disclaimer"</span>: <span class="token-str">"ASV availability is unverified in baseline facility directories. Always confirm directly or through 108 emergency ambulance dispatch."</span>
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="brand-logo">
+            <div class="brand-icon">⚕️</div>
+            <div class="brand-text">SANJEEVINI<span>.</span></div>
+          </div>
+          <p>
+            A coordinated, voice-first snakebite emergency assistance platform saving lives in rural India through universal access across Flutter Mobile, Telephone IVR, and WhatsApp.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Channels</h4>
+          <ul>
+            <li><a href="#channels">Flutter Mobile App</a></li>
+            <li><a href="#channels">Telephone IVR Adapter</a></li>
+            <li><a href="#channels">WhatsApp Business Bot</a></li>
+            <li><a href="#channels">ASHA Worker Portal</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Clinical Protocols</h4>
+          <ul>
+            <li><a href="#first-aid">National Action Plan (NAPSE)</a></li>
+            <li><a href="#first-aid">WHO Snakebite Guidelines</a></li>
+            <li><a href="#first-aid">Golden Hour Management</a></li>
+            <li><a href="#products">Certified Safety Gear</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Emergency Lines</h4>
+          <ul>
+            <li><a href="tel:108" style="color:#ff4d6d; font-weight:700;">🚨 Dial 108 Ambulance</a></li>
+            <li><a href="tel:112">Dial 112 National Emergency</a></li>
+            <li><a href="tel:18001801104">Poison Helpline: 1800-180-1104</a></li>
+            <li><a href="#api-spec">Backend API Docs (/docs)</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>
+          © 2026 Sanjeevini Emergency Platform. Built for open collaboration under the Memento initiative.
+        </div>
+        <div>
+          Medical Disclaimer: Sanjeevini is an emergency coordination tool and does not replace professional medical intervention.
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
