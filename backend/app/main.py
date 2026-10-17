@@ -58,12 +58,13 @@ app = FastAPI(
     openapi_url="/openapi.json",
 )
 
-# CORS Middleware
+# CORS Middleware: Scoped origins with credentials; wildcard disallows credentials
+is_wildcard_cors = "*" in settings.BACKEND_CORS_ORIGINS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_credentials=not is_wildcard_cors,
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
