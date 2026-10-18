@@ -18,7 +18,10 @@ class EdesyToolRequest(BaseModel):
     Schema for synchronous in-conversation tool calls from Edesy's voice agent.
     Accepts both standard and common telephony parameter naming.
     """
-    call_sid: str = Field(..., description="Call session identifier")
+    call_sid: Optional[str] = Field(default=None, description="Call session identifier")
+    call_id: Optional[str] = Field(default=None, description="Alternative field for call identifier")
+    session_id: Optional[str] = Field(default=None, description="Alternative field for session identifier")
+    conversation_id: Optional[str] = Field(default=None, description="Alternative field for conversation identifier")
     transcript: Optional[str] = Field(default=None, description="Transcribed caller utterance from Edesy STT")
     message: Optional[str] = Field(default=None, description="Alternative field for transcript")
     caller_phone: Optional[str] = Field(default=None, description="Caller telephone number")

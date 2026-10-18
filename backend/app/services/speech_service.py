@@ -184,30 +184,8 @@ class SpeechAdapter:
                     "सीधे 108 या 112 पर कॉल करके एम्बुलेंस बुलाएं।"
                 )
 
-        # 2. Check for Case ID in response
-        case_match = re.search(r"Case ID:\s*([A-Za-z0-9\-]+)", response_text, re.IGNORECASE)
-        cid_str = case_match.group(1) if case_match else None
-
-        if cid_str or "emergency case recorded" in lower_resp:
-            cid_display = f" (Case ID: {cid_str})" if cid_str else ""
-            if "bhojpuri" in lang:
-                return (
-                    f"आपातकालीन केस दर्ज हो गइल बा{cid_display}। मरीज के एकदम शांत आ स्थिर रखीं। "
-                    f"घाव पर चीरा मत लगाईं आ जहर मत चूसीं। अगर पट्टी बन्हल बा त ओकरा के मत खोलीं। "
-                    f"रउआ कवन गाँव भा नजदीकी जगह पर बानी, बताईं?"
-                )
-            elif "hinglish" in lang:
-                return (
-                    f"Emergency case record ho gaya hai{cid_display}. Patient ko bilkul calm aur strictly still rakhein. "
-                    f"Bite wound par cut ya suck na karein. Agar tourniquet pehle se bandha hai, to use remove na karein. "
-                    f"Please apna current village, landmark ya location batayein taaki nearest hospital route kiya ja sake."
-                )
-            else:
-                return (
-                    f"आपातकालीन केस दर्ज कर लिया गया है{cid_display}। मरीज को बिल्कुल शांत और स्थिर रखें। "
-                    f"काटे हुए घाव पर चीरा न लगाएं और जहर न चूसें। यदि पहले से पट्टी बंधी है, तो उसे बिल्कुल न हटाएं। "
-                    f"कृपया अपना गाँव, शहर या नजदीकी मुख्य पहचान बताएं ताकि नजदीकी अस्पताल का रास्ता बताया जा सके।"
-                )
+        # NOTE: Case IDs and conversation IDs must never appear in spoken response_text.
+        # The edesy endpoint strips them at source; localize_response must not re-inject them.
 
         # 3. Location / Facility referral turn
         if "location received" in lower_resp or "nearest healthcare facility" in lower_resp:

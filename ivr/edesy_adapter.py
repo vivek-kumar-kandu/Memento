@@ -54,6 +54,16 @@ def get_controller(request: Request) -> ConversationController:
     return getattr(request.app.state, "conversation_controller", ConversationController())
 
 
+@router.get("/webhook", summary="Edesy Webhook Status")
+async def edesy_webhook_status() -> Dict[str, str]:
+    return {
+        "status": "ready",
+        "service": "edesy-call-webhook",
+        "method_required": "POST",
+        "description": "Send POST requests with call lifecycle events (call.initiated, call.ended).",
+    }
+
+
 @router.post(
     "/webhook",
     summary="Edesy Asynchronous Call Lifecycle Webhook",
@@ -91,6 +101,16 @@ async def edesy_call_event_webhook(
         "status": "received",
         "call_sid": event.call_sid,
         "event_type": event.event_type,
+    }
+
+
+@router.get("/tool", summary="Edesy Mid-Conversation Tool Status")
+async def edesy_tool_status() -> Dict[str, str]:
+    return {
+        "status": "ready",
+        "service": "edesy-mid-conversation-tool",
+        "method_required": "POST",
+        "description": "Send POST requests containing 'call_sid' and 'transcript' for emergency triage.",
     }
 
 

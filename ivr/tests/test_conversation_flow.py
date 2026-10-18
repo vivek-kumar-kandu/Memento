@@ -23,7 +23,7 @@ def client():
 
 @pytest.fixture
 def clean_controller():
-    client = BackendClient(endpoint_url="https://sanjeevini-ai.onrender.com/api/v1/assistant/message")
+    client = BackendClient(endpoint_url="http://127.0.0.1:8000/api/v1/assistant/message")
     store = SessionStore()
     return ConversationController(backend_client=client, session_store=store)
 
