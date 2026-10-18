@@ -90,9 +90,17 @@ class AssistantService:
     ) -> Tuple[Optional[str], Optional[Tuple[float, float]]]:
         """
         Attempt to resolve a village or subdistrict name from facility directory.
-        Returns (resolved_name, (lat, lon)) if verified, else (None, None).
+        Returns (resolved_name, (lat, lon)) if verified against the facility index,
+        else (candidate_name_or_None, None).
         NEVER fabricates coordinates or distances.
+        NEVER uses naive substring matching (e.g. 'Tala' in 'talab').
         """
+        if geo_index.is_loaded and geo_index.facilities:
+            resolved_label, coords = geo_index.resolve_location_text(text, location_input)
+            if resolved_label and coords:
+                return resolved_label, coords
+
+        # Fallback candidate text if structured location was provided without coordinates
         candidate_name = None
         if location_input:
             loc_data = (
@@ -105,28 +113,8 @@ class AssistantService:
                     loc_data.get("village")
                     or loc_data.get("landmark")
                     or loc_data.get("name")
+                    or loc_data.get("district")
                 )
-
-        lowered = text.lower()
-
-        # Check in-memory facilities index for real matching subdistrict or district
-        if geo_index.is_loaded and geo_index.facilities:
-            for fac in geo_index.facilities:
-                subdist = (fac.get("subdistrict_name") or "").lower()
-                dist = (fac.get("district_name") or "").lower()
-                fac_name = (fac.get("facility_name") or "").lower()
-
-                # Check if text contains known subdistrict name (e.g. "bakshi ka talab", "mohanlalganj")
-                if subdist and len(subdist) > 3 and subdist in lowered:
-                    return fac.get("subdistrict_name"), (fac["latitude"], fac["longitude"])
-                if candidate_name and subdist and candidate_name.lower() in subdist:
-                    return fac.get("subdistrict_name"), (fac["latitude"], fac["longitude"])
-
-            # Check district level if subdistrict was not matched
-            for fac in geo_index.facilities:
-                dist = (fac.get("district_name") or "").lower()
-                if dist and len(dist) > 3 and dist in lowered:
-                    return fac.get("district_name"), (fac["latitude"], fac["longitude"])
 
         return candidate_name, None
 

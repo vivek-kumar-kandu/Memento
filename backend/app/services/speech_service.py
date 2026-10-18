@@ -240,6 +240,24 @@ class SpeechAdapter:
                     f"काटे हुए अंग को स्थिर रखें।"
                 )
 
+        # 3b. Location clarification turn (unresolved or ambiguous location)
+        if "could not reliably resolve" in lower_resp or (next_action == "COLLECT_LOCATION" and "case recorded" not in lower_resp):
+            if "bhojpuri" in lang:
+                return (
+                    "जगह साफ नइखे बुझात। रउआ नजदीकी ब्लॉक, तहसील भा प्रमुख शहर/कस्बा के नाम बताईं "
+                    "ताकि नजदीकी अस्पताल खोजल जा सके। मरीज के शांत राखीं आ तुरंत 108 एम्बुलेंस बोलाईं।"
+                )
+            elif "hinglish" in lang:
+                return (
+                    "Location confirm nahi ho paayi. Kripya apna nazdeeki block, tehsil, ya bada shahar/landmark "
+                    "batayein taaki nazdeeki hospital khoja ja sake. Patient ko bilkul sthir rakhein aur 108 ambulance ko call karein."
+                )
+            else:
+                return (
+                    "स्थान स्पष्ट रूप से नहीं मिल सका। कृपया अपना नजदीकी ब्लॉक, तहसील या प्रमुख शहर/कस्बा बताएं "
+                    "ताकि नजदीकी अस्पताल खोजा जा सके। मरीज को बिल्कुल स्थिर रखें और 108 एम्बुलेंस से संपर्क करें।"
+                )
+
         # 4. Devanagari pass-through
         has_devanagari = bool(re.search(r"[\u0900-\u097F]", response_text))
         if has_devanagari and "hinglish" not in lang:
