@@ -153,10 +153,12 @@ async def edesy_conversation_tool(
     if result.case_id:
         session.case_id = result.case_id
 
-    # 5. Format and sanitize TTS response for Edesy IVR
-    localized_speech = SpeechAdapter.format_edesy_response(
-        result=result,
+    # 5. Localize and sanitize TTS response
+    localized_speech = SpeechAdapter.localize_response(
+        response_text=result.response_text,
         language=session.language,
+        next_action=result.next_action,
+        is_fallback=False,
     )
     sanitized_speech = SpeechAdapter.sanitize_for_tts(localized_speech)
 
