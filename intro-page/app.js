@@ -16,8 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
    1. CHANNEL TABS SWITCHER
    ========================================================================== */
 function initChannelTabs() {
-  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabBtns = document.querySelectorAll('.neo-tab-btn, .tab-btn');
   const tabPanes = document.querySelectorAll('.tab-pane');
+  const apkDownloadUrl = 'https://drive.google.com/file/d/1GTCP2EI9LIxLLUlbGp2zgEsoHBjdjCfE/view?usp=sharing';
 
   tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -30,6 +31,11 @@ function initChannelTabs() {
       const targetPane = document.getElementById(targetId);
       if (targetPane) {
         targetPane.classList.add('active');
+      }
+
+      // If user clicked Flutter Mobile App tab, open Google Drive APK download link
+      if (btn.id === 'tab-btn-flutter' || targetId === 'pane-flutter') {
+        window.open(apkDownloadUrl, '_blank', 'noopener,noreferrer');
       }
     });
   });
