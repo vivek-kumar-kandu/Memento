@@ -17,13 +17,20 @@ router = APIRouter(prefix="/api/v1/edesy", tags=["Edesy IVR Provider"])
 
 class EdesyWebhookEvent(BaseModel):
     """Schema for asynchronous Edesy call lifecycle webhook events."""
-    event_type: str = Field(..., description="Lifecycle event: call.initiated, call.answered, call.ended, etc.")
-    call_sid: str = Field(..., description="Unique telephony call identifier from Edesy")
+    event_type: Optional[str] = Field(default=None, description="Lifecycle event: call.initiated, call.answered, call.ended, etc.")
+    event: Optional[str] = Field(default=None)
+    type: Optional[str] = Field(default=None)
+    call_sid: Optional[str] = Field(default=None, description="Unique telephony call identifier from Edesy")
+    call_id: Optional[str] = Field(default=None)
+    id: Optional[str] = Field(default=None)
     from_number: Optional[str] = Field(default=None, description="Caller phone number")
+    caller_phone: Optional[str] = Field(default=None)
     to_number: Optional[str] = Field(default=None, description="Dialed IVR helpline number")
     recording_url: Optional[str] = Field(default=None, description="Audio recording URL if available")
     duration_seconds: Optional[int] = Field(default=None, description="Call duration in seconds")
     timestamp: Optional[str] = Field(default=None, description="Event timestamp")
+
+    model_config = {"extra": "allow"}
 
 
 class EdesyToolRequest(BaseModel):
@@ -86,21 +93,25 @@ async def edesy_call_event_webhook(
                 detail="Invalid Edesy webhook signature",
             )
 
-    controller = get_controller(request)
-    logger.info("Edesy lifecycle event '%s' received for call SID %s", event.event_type, event.call_sid)
+    event_type = event.event_type or event.event or event.type or "call.test"
+    call_sid = event.call_sid or event.call_id or event.id or "test-ping-sid"
+    from_num = event.from_number or event.caller_phone
 
-    if event.event_type == "call.initiated":
+    controller = get_controller(request)
+    logger.info("Edesy lifecycle event '%s' received for call SID %s", event_type, call_sid)
+
+    if event_type == "call.initiated":
         controller.start_call(
-            session_id=event.call_sid,
-            caller_phone=event.from_number,
+            session_id=call_sid,
+            caller_phone=from_num,
         )
-    elif event.event_type == "call.ended":
-        controller.end_call(session_id=event.call_sid)
+    elif event_type == "call.ended":
+        controller.end_call(session_id=call_sid)
 
     return {
         "status": "received",
-        "call_sid": event.call_sid,
-        "event_type": event.event_type,
+        "call_sid": call_sid,
+        "event_type": event_type,
     }
 
 

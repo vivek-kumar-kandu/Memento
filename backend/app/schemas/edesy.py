@@ -4,13 +4,20 @@ from pydantic import BaseModel, Field
 
 class EdesyWebhookEvent(BaseModel):
     """Schema for asynchronous Edesy call lifecycle webhook events."""
-    event_type: str = Field(..., description="Lifecycle event: call.initiated, call.answered, call.ended, etc.")
-    call_sid: str = Field(..., description="Unique telephony call identifier from Edesy")
+    event_type: Optional[str] = Field(default=None, description="Lifecycle event: call.initiated, call.answered, call.ended, etc.")
+    event: Optional[str] = Field(default=None)
+    type: Optional[str] = Field(default=None)
+    call_sid: Optional[str] = Field(default=None, description="Unique telephony call identifier from Edesy")
+    call_id: Optional[str] = Field(default=None)
+    id: Optional[str] = Field(default=None)
     from_number: Optional[str] = Field(default=None, description="Caller phone number")
+    caller_phone: Optional[str] = Field(default=None)
     to_number: Optional[str] = Field(default=None, description="Dialed IVR helpline number")
     recording_url: Optional[str] = Field(default=None, description="Audio recording URL if available")
     duration_seconds: Optional[int] = Field(default=None, description="Call duration in seconds")
     timestamp: Optional[str] = Field(default=None, description="Event timestamp")
+
+    model_config = {"extra": "allow"}
 
 
 class EdesyToolRequest(BaseModel):

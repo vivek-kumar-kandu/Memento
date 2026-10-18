@@ -274,14 +274,18 @@ async def edesy_call_event_webhook(
     db: AsyncSession = Depends(get_db),
     x_edesy_signature: Optional[str] = Header(None),
 ) -> Dict[str, Any]:
+    event_type = event.event_type or event.event or event.type or "call.test"
+    call_sid = event.call_sid or event.call_id or event.id or "test-ping-sid"
+    phone_number = event.from_number or event.caller_phone
+
     logger.info(
         "Edesy lifecycle event '%s' received for call SID %s",
-        event.event_type,
-        event.call_sid,
+        event_type,
+        call_sid,
     )
-    session = await _get_or_create_session(db, event.call_sid, event.from_number)
+    session = await _get_or_create_session(db, call_sid, phone_number)
 
-    if event.event_type == "call.ended":
+    if event_type == "call.ended":
         session.state = "COMPLETED"
         session.updated_at = datetime.now(timezone.utc)
         ctx = dict(session.context_data or {})
@@ -292,8 +296,8 @@ async def edesy_call_event_webhook(
 
     return {
         "status": "received",
-        "call_sid": event.call_sid,
-        "event_type": event.event_type,
+        "call_sid": call_sid,
+        "event_type": event_type,
     }
 
 
