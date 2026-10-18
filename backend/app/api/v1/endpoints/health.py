@@ -41,4 +41,19 @@ async def check_health(db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
             "total_source_facilities": geo_index.total_source_count,
             "asv_baseline_status": "100% UNKNOWN (unverified)",
         },
+        "channels": {
+            "ivr_telephony": {
+                "status": "ready",
+                "tool_endpoint": "/api/v1/edesy/tool",
+                "webhook_endpoint": "/api/v1/edesy/webhook",
+            },
+            "whatsapp_bot": {
+                "status": "ready",
+                "assistant_endpoint": "/api/v1/assistant/message",
+            },
+            "flutter_mobile": {
+                "status": "ready",
+                "nearby_endpoint": "/api/v1/facilities/nearby",
+            },
+        },
     }

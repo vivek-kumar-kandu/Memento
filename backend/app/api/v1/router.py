@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, facilities, cases, assistant
+from app.api.v1.endpoints import health, facilities, cases, assistant, edesy
 
 api_v1_router = APIRouter()
 
@@ -14,5 +14,8 @@ api_v1_router.include_router(cases.router)
 
 # Include shared conversational assistant endpoints
 api_v1_router.include_router(assistant.router)
+
+# Include Edesy IVR Telephony provider endpoints
+api_v1_router.include_router(edesy.router)
 
 
