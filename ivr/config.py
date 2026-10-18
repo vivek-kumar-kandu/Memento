@@ -10,8 +10,8 @@ load_dotenv(dotenv_path=_ENV_PATH)
 HOST: str = os.getenv("HOST", "127.0.0.1")
 PORT: int = int(os.getenv("PORT", "8001"))
 
-# Sanjeevani Backend API Base URL (defaults to deployed Render backend)
-BACKEND_BASE_URL: str = os.getenv("BACKEND_BASE_URL", "https://sanjeevini-ai.onrender.com")
+# Sanjeevani Backend API Base URL (defaults to local backend)
+BACKEND_BASE_URL: str = os.getenv("BACKEND_BASE_URL", "http://127.0.0.1:8000")
 BACKEND_TIMEOUT_SECONDS: float = float(os.getenv("BACKEND_TIMEOUT_SECONDS", "15.0"))
 ASSISTANT_ENDPOINT: str = f"{BACKEND_BASE_URL.rstrip('/')}/api/v1/assistant/message"
 
