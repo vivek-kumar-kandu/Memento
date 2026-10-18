@@ -1,11 +1,25 @@
-class ApiConstants {
-  // Use 10.0.2.2 for Android emulator, localhost for web/desktop, or custom LAN IP for physical device
-  static const String _defaultUrl = String.fromEnvironment(
-    'BACKEND_BASE_URL',
-    defaultValue: 'https://sanjeevini-ai.onrender.com',
-  );
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
-  static String baseUrl = _defaultUrl;
+class ApiConstants {
+  // Automatically select host for local development:
+  // - Android emulator: http://10.0.2.2:8000
+  // - Web / Windows Desktop / iOS Simulator: http://127.0.0.1:8000
+  static String get _defaultLocalUrl {
+    if (kIsWeb) {
+      return 'http://127.0.0.1:8000';
+    }
+    try {
+      if (Platform.isAndroid) {
+        return 'http://10.0.2.2:8000';
+      }
+    } catch (_) {}
+    return 'http://127.0.0.1:8000';
+  }
+
+  static const String _envUrl = String.fromEnvironment('BACKEND_BASE_URL');
+
+  static String baseUrl = _envUrl.isNotEmpty ? _envUrl : _defaultLocalUrl;
 
   static String get nearbyFacilitiesEndpoint => '$baseUrl/api/v1/facilities/nearby';
   static String get facilitiesEndpoint => '$baseUrl/api/v1/facilities';
