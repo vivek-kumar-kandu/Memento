@@ -45,6 +45,8 @@ class EdesyToolResponse(BaseModel):
     end_call: bool = Field(default=False, description="Whether telephony engine should hang up")
     conversation_id: Optional[str] = Field(default=None, description="Backend conversation ID")
     case_id: Optional[str] = Field(default=None, description="Backend emergency case ID")
+    language: Optional[str] = Field(default="hindi", description="Detected caller language (hindi, hinglish, bhojpuri)")
+
 
 
 def get_controller(request: Request) -> ConversationController:
@@ -124,4 +126,6 @@ async def edesy_conversation_tool(
         end_call=should_end,
         conversation_id=result.get("conversation_id"),
         case_id=result.get("case_id"),
+        language=result.get("language", "hindi"),
     )
+

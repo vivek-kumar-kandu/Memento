@@ -16,7 +16,8 @@ BACKEND_TIMEOUT_SECONDS: float = float(os.getenv("BACKEND_TIMEOUT_SECONDS", "5.0
 ASSISTANT_ENDPOINT: str = f"{BACKEND_BASE_URL.rstrip('/')}/api/v1/assistant/message"
 
 # Call session settings
-DEFAULT_LANGUAGE: str = os.getenv("DEFAULT_LANGUAGE", "en")
+DEFAULT_LANGUAGE: str = os.getenv("DEFAULT_LANGUAGE", "hindi")
+
 MAX_NO_INPUT_RETRIES: int = int(os.getenv("MAX_NO_INPUT_RETRIES", "2"))
 MAX_BACKEND_RETRIES: int = int(os.getenv("MAX_BACKEND_RETRIES", "1"))
 

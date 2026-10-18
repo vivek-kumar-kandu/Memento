@@ -22,7 +22,8 @@ class CallSession(BaseModel):
     caller_phone: Optional[str] = Field(default=None, description="Caller phone number")
     conversation_id: Optional[str] = Field(default=None, description="Backend conversational state ID")
     case_id: Optional[str] = Field(default=None, description="Backend emergency case ID")
-    language: str = Field(default="en", description="Call language code")
+    language: str = Field(default="hindi", description="Call language code")
+
     turn_count: int = Field(default=0, description="Total turns completed")
     no_input_count: int = Field(default=0, description="Consecutive silence/empty input turns")
     is_active: bool = Field(default=True, description="Call active status")
@@ -142,6 +143,13 @@ class ConversationController:
         session.no_input_count = 0
         session.turn_count += 1
 
+        # Detect and update language style (Hindi, Hinglish, Bhojpuri)
+        session.language = SpeechAdapter.detect_language(
+            text=clean_text,
+            current_language=session.language,
+        )
+        self.sessions.update(session)
+
         # Check for human escalation keywords
         lower_text = clean_text.lower()
         if any(kw in lower_text for kw in ["operator", "human", "help me", "doctor", "madad", "baat karao"]):
@@ -154,6 +162,7 @@ class ConversationController:
                 "next_action": "ESCALATE_HUMAN",
                 "conversation_id": session.conversation_id,
                 "case_id": session.case_id,
+                "language": session.language,
                 "is_fallback": False,
             }
 
@@ -172,10 +181,15 @@ class ConversationController:
             session.case_id = backend_resp.case_id
         self.sessions.update(session)
 
-        # Format spoken response
-        spoken_text = SpeechAdapter.sanitize_for_tts(backend_resp.response_text)
+        # Localize response text to caller's language style
+        localized_text = SpeechAdapter.localize_response(
+            response_text=backend_resp.response_text,
+            language=session.language,
+            next_action=backend_resp.next_action,
+        )
+        spoken_text = SpeechAdapter.sanitize_for_tts(localized_text)
 
-        # If facilities were returned and not already mentioned, append facility and ASV advice
+        # If facilities were returned and not already mentioned, append localized facility & ASV advice
         if backend_resp.facilities and len(backend_resp.facilities) > 0:
             top_facility = backend_resp.facilities[0]
             fac_name = top_facility.get("facility_name", "Primary Health Center")
@@ -185,6 +199,7 @@ class ConversationController:
                 facility_name=fac_name,
                 distance_km=dist,
                 asv_status=asv_stat,
+                language=session.language,
             )
             # Only append if not already in response text
             if fac_name.lower() not in spoken_text.lower():
@@ -198,8 +213,10 @@ class ConversationController:
             "case_id": session.case_id,
             "case_status": backend_resp.case_status,
             "facilities": backend_resp.facilities,
+            "language": session.language,
             "is_fallback": backend_resp.is_fallback,
         }
+
 
     def end_call(self, session_id: str) -> Dict[str, Any]:
         """Terminates session and records call completion."""
