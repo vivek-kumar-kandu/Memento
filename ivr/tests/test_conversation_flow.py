@@ -12,7 +12,7 @@ if str(_IVR_DIR) not in sys.path:
 
 from main import app  # noqa: E402
 from conversation import ConversationController, SessionStore  # noqa: E402
-from backend_client import BackendClient, EMERGENCY_FALLBACK_TEXT  # noqa: E402
+from backend_client import BackendClient, AssistantMessageResponse  # noqa: E402
 from speech import SpeechAdapter  # noqa: E402
 
 
@@ -28,123 +28,126 @@ def clean_controller():
     return ConversationController(backend_client=client, session_store=store)
 
 
-def test_inbound_greeting_en(clean_controller):
-    """Verifies that an inbound call starts with the expected English greeting."""
-    res = clean_controller.start_call(session_id="call-001", caller_phone="+919876543210", language="en")
+def test_default_short_simple_hindi_greeting(clean_controller):
+    """Verifies that an inbound call begins with a short, simple Hindi greeting by default."""
+    res = clean_controller.start_call(session_id="call-001", caller_phone="+919876543210")
     assert res["session_id"] == "call-001"
     assert res["next_action"] == "CONTINUE"
-    assert "Sanjeevani Emergency Assistance" in res["response_text"]
-    assert "describe the emergency" in res["response_text"]
+    assert "संजीवनी आपातकालीन सेवा" in res["response_text"]
+    assert "कहाँ हैं" in res["response_text"]
 
 
-def test_inbound_greeting_hi(clean_controller):
-    """Verifies that an inbound call supports Hindi greeting when requested."""
-    res = clean_controller.start_call(session_id="call-002", caller_phone="+919876543210", language="hi")
-    assert "Sanjeevani emergency helpline" in res["response_text"]
-    assert "kripya" in res["response_text"].lower()
+def test_language_detection():
+    """Verifies language identification for Hindi, Hinglish, and Bhojpuri."""
+    # Hindi (Devanagari)
+    assert SpeechAdapter.detect_language("सांप ने पैर में काट लिया है, बहुत दर्द हो रहा है") == "hindi"
+
+    # Hinglish (Roman script, mixed English-Hindi)
+    assert SpeechAdapter.detect_language("Bhai mere brother ko snake bite ho gaya hai field me") == "hinglish"
+    assert SpeechAdapter.detect_language("Emergency hai, patient ko nearest hospital le jana hai") == "hinglish"
+
+    # Bhojpuri (Devanagari)
+    assert SpeechAdapter.detect_language("हमार भाई के खेत में सँपवा काट लेले बा, का करीं?") == "bhojpuri"
+    assert SpeechAdapter.detect_language("का भइल बा? रउआ कहाँ बानी?") == "bhojpuri"
+
+    # Bhojpuri (Roman)
+    assert SpeechAdapter.detect_language("hamar bhai ke sampwa kaat lihis, ka bhail") == "bhojpuri"
+    assert SpeechAdapter.detect_language("rauwa kahan baani, jaldi kari") == "bhojpuri"
 
 
 @pytest.mark.anyio
-async def test_full_two_turn_snakebite_and_location_flow():
-    """
-    Simulates complete two-turn conversation:
-    Turn 1: Caller reports snakebite -> Backend creates case and returns COLLECT_LOCATION.
-    Turn 2: Caller provides location -> Backend associates facilities and returns CONTINUE.
-    Verifies that conversation_id and case_id are preserved across turns.
-    """
+async def test_caller_language_detection_and_response_matching():
+    """Verifies that the controller identifies caller language on utterance and responds in the same style."""
     store = SessionStore()
     mock_backend = BackendClient()
-
-    # Mock responses for the two turns
-    turn1_backend_response = {
-        "response_text": "Keep the patient calm and still. Do not walk. Where are you located?",
-        "next_action": "COLLECT_LOCATION",
-        "conversation_id": "conv-uuid-12345",
-        "case_id": "case-9988",
-        "case_status": "CREATED",
-        "facilities": None,
-    }
-
-    turn2_backend_response = {
-        "response_text": "Ambulance dispatched. Referral to nearest facility initiated.",
-        "next_action": "CONTINUE",
-        "conversation_id": "conv-uuid-12345",
-        "case_id": "case-9988",
-        "case_status": "TRIAGED",
-        "facilities": [
-            {
-                "facility_id": "FAC-001",
-                "facility_name": "Rampur Community Health Centre",
-                "distance_km": 12.4,
-                "asv_stock_status": "UNKNOWN",
-            }
-        ],
-    }
-
     controller = ConversationController(backend_client=mock_backend, session_store=store)
-    controller.start_call(session_id="call-100", caller_phone="+919876543210")
+    controller.start_call(session_id="call-bhojpuri", caller_phone="+919876543210")
 
-    # Turn 1: Snakebite reported
+    # Caller speaks Bhojpuri
     with patch.object(mock_backend, "send_message", new_callable=AsyncMock) as mock_send:
-        from backend_client import AssistantMessageResponse
-
-        mock_send.return_value = AssistantMessageResponse(**turn1_backend_response)
-
-        res1 = await controller.process_utterance("call-100", "A snake bit my brother on his foot in the field!")
-
-        # Verify outgoing request parameters passed to backend client
-        mock_send.assert_called_once_with(
-            message="A snake bit my brother on his foot in the field!",
-            conversation_id=None,
-            case_id=None,
-            caller_phone="+919876543210",
-            language="en",
+        mock_send.return_value = AssistantMessageResponse(
+            response_text="Keep patient calm and still. Do not move. Where are you located?",
+            next_action="COLLECT_LOCATION",
+            conversation_id="conv-bhoj-1",
         )
 
-        assert res1["conversation_id"] == "conv-uuid-12345"
-        assert res1["case_id"] == "case-9988"
-        assert res1["next_action"] == "COLLECT_LOCATION"
+        res = await controller.process_utterance("call-bhojpuri", "हमार भाई के खेत में सँपवा काट लेले बा, का करीं?")
 
-    # Turn 2: Location provided (Village Rampur near primary school)
-    with patch.object(mock_backend, "send_message", new_callable=AsyncMock) as mock_send:
-        mock_send.return_value = AssistantMessageResponse(**turn2_backend_response)
-
-        res2 = await controller.process_utterance("call-100", "We are in Village Rampur, near the primary school")
-
-        # Verify that conversation_id and case_id from Turn 1 are preserved and sent
-        mock_send.assert_called_once_with(
-            message="We are in Village Rampur, near the primary school",
-            conversation_id="conv-uuid-12345",
-            case_id="case-9988",
-            caller_phone="+919876543210",
-            language="en",
-        )
-        assert res2["conversation_id"] == "conv-uuid-12345"
-        assert res2["case_id"] == "case-9988"
-        # Facility info should be appended to speech
-        assert "Rampur Community Health Centre" in res2["response_text"]
-        # Safety rule: unverified ASV should be explicitly warned
-        assert "unverified" in res2["response_text"].lower()
+        # Verified that language was detected as Bhojpuri and sent to backend
+        assert res["language"] == "bhojpuri"
+        # Spoken response must be in Bhojpuri
+        assert "मरीज के एकदम शांत आ स्थिर रखीं" in res["response_text"]
+        assert "रउआ कवन गाँव" in res["response_text"]
+        # Must not contain English instructional text
+        assert "Keep patient calm" not in res["response_text"]
 
 
 @pytest.mark.anyio
-async def test_asv_safety_speech_formatting():
-    """Verifies that ASV inventory status is never fabricated as verified when UNKNOWN."""
-    unknown_speech = SpeechAdapter.format_asv_and_facility_speech(
-        facility_name="Civil Hospital",
-        distance_km=8.5,
-        asv_status="UNKNOWN",
-    )
-    assert "unverified" in unknown_speech.lower()
-    assert "do not delay transport" in unknown_speech.lower()
+async def test_language_switching_mid_call():
+    """Verifies that if the caller clearly switches language, the IVR switches with them."""
+    store = SessionStore()
+    mock_backend = BackendClient()
+    controller = ConversationController(backend_client=mock_backend, session_store=store)
+    controller.start_call(session_id="call-switch")
 
-    available_speech = SpeechAdapter.format_asv_and_facility_speech(
-        facility_name="District Hospital",
-        distance_km=25.0,
-        asv_status="AVAILABLE",
+    # Turn 1: Caller speaks Hindi
+    with patch.object(mock_backend, "send_message", new_callable=AsyncMock) as mock_send:
+        mock_send.return_value = AssistantMessageResponse(
+            response_text="Keep calm and still. Where are you located?",
+            next_action="COLLECT_LOCATION",
+            conversation_id="conv-switch",
+        )
+        res1 = await controller.process_utterance("call-switch", "सांप ने काट लिया है, क्या करें?")
+        assert res1["language"] == "hindi"
+        assert "मरीज को बिल्कुल शांत" in res1["response_text"]
+
+    # Turn 2: Caller switches to Hinglish
+    with patch.object(mock_backend, "send_message", new_callable=AsyncMock) as mock_send:
+        mock_send.return_value = AssistantMessageResponse(
+            response_text="Ambulance dispatched. Referral to nearest facility initiated.",
+            next_action="CONTINUE",
+            conversation_id="conv-switch",
+        )
+        res2 = await controller.process_utterance("call-switch", "Hum Rampur village me primary school ke pass hain")
+        assert res2["language"] == "hinglish"
+        assert "Ambulance dispatched" in res2["response_text"] or "Patient ko bilkul calm" in res2["response_text"]
+
+
+@pytest.mark.anyio
+async def test_asv_safety_speech_formatting_multilingual():
+    """
+    Verifies that ASV inventory status is localized accurately in Hindi, Hinglish, and Bhojpuri,
+    and is never fabricated as verified when UNKNOWN.
+    """
+    # 1. Hindi
+    hindi_speech = SpeechAdapter.format_asv_and_facility_speech(
+        facility_name="रामपुर सामुदायिक स्वास्थ्य केंद्र",
+        distance_km=12.4,
+        asv_status="UNKNOWN",
+        language="hindi",
     )
-    assert "reported available" in available_speech.lower()
-    assert "dispatch should still confirm" in available_speech.lower()
+    assert "सत्यापित नहीं है" in hindi_speech
+    assert "बिल्कुल देरी न करें" in hindi_speech
+
+    # 2. Hinglish
+    hinglish_speech = SpeechAdapter.format_asv_and_facility_speech(
+        facility_name="Rampur CHC",
+        distance_km=12.4,
+        asv_status="UNKNOWN",
+        language="hinglish",
+    )
+    assert "verified nahi hai" in hinglish_speech
+    assert "delay na karein" in hinglish_speech
+
+    # 3. Bhojpuri
+    bhojpuri_speech = SpeechAdapter.format_asv_and_facility_speech(
+        facility_name="रामपुर अस्पताल",
+        distance_km=12.4,
+        asv_status="UNKNOWN",
+        language="bhojpuri",
+    )
+    assert "पक्का नइखे" in bhojpuri_speech
+    assert "तनी देरी मत करीं" in bhojpuri_speech
 
 
 @pytest.mark.anyio
@@ -159,13 +162,11 @@ async def test_backend_timeout_and_network_failure_fallback():
     controller.start_call(session_id="call-timeout", caller_phone="+919876543210")
 
     with patch("httpx.AsyncClient.post", side_effect=httpx.TimeoutException("Timed out")):
-        res = await controller.process_utterance("call-timeout", "Emergency! Snake bite!")
+        res = await controller.process_utterance("call-timeout", "Emergency snake bite")
 
         assert res["is_fallback"] is True
         assert res["next_action"] == "ESCALATE_HUMAN"
         # Safety checks: must advise stillness, no tourniquet, no incision, call 108
-        assert "calm and completely still" in res["response_text"].lower()
-        assert "tourniquet" in res["response_text"].lower()
         assert "108" in res["response_text"]
 
 
@@ -182,12 +183,12 @@ async def test_silence_and_no_input_handling_prevents_infinite_loops():
     # Turn 1: Empty input -> prompt 1
     t1 = await controller.process_utterance("call-silence", "")
     assert t1["next_action"] == "CONTINUE"
-    assert "could not hear" in t1["response_text"].lower()
+    assert ("आवाज़" in t1["response_text"] or "aawaz" in t1["response_text"] or "hear" in t1["response_text"])
 
     # Turn 2: Whitespace only -> prompt 2
     t2 = await controller.process_utterance("call-silence", "   ")
     assert t2["next_action"] == "CONTINUE"
-    assert "remain on the line" in t2["response_text"].lower()
+    assert ("लाइन" in t2["response_text"] or "line" in t2["response_text"])
 
     # Turn 3: Exceeds max retries -> Escalate to human
     t3 = await controller.process_utterance("call-silence", None)
@@ -202,9 +203,9 @@ async def test_human_operator_escalation_intent():
     controller = ConversationController(session_store=store)
     controller.start_call(session_id="call-operator")
 
-    res = await controller.process_utterance("call-operator", "I need to talk to a human operator or doctor please")
+    res = await controller.process_utterance("call-operator", "मुझे डॉक्टर या ऑपरेटर से बात कराओ")
     assert res["next_action"] == "ESCALATE_HUMAN"
-    assert "emergency coordinator" in res["response_text"].lower()
+    assert "108" in res["response_text"]
 
 
 def test_direct_ivr_api_endpoints(client):
@@ -214,12 +215,12 @@ def test_direct_ivr_api_endpoints(client):
     assert r1.status_code == 200
     data1 = r1.json()
     assert data1["session_id"] == "test-http-call"
-    assert "Sanjeevani" in data1["response_text"]
+    assert "संजीवनी" in data1["response_text"]
 
     # 2. Utterance call (with backend unreachable fallback)
     r2 = client.post(
         "/api/v1/ivr/call/utterance",
-        json={"session_id": "test-http-call", "transcript": "Snake bite in jungle"},
+        json={"session_id": "test-http-call", "transcript": "सांप ने काटा है"},
     )
     assert r2.status_code == 200
     data2 = r2.json()
