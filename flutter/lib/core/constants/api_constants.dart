@@ -24,7 +24,7 @@ class ApiConstants {
   static String get nearbyFacilitiesEndpoint => '$baseUrl/api/v1/facilities/nearby';
   static String get facilitiesEndpoint => '$baseUrl/api/v1/facilities';
   static String get assistantEndpoint => '$baseUrl/api/v1/assistant/message';
-  static String get casesEndpoint => '$baseUrl/api/v1/cases';
+  static String get casesEndpoint => '$baseUrl/api/v1/cases/';
   static String get healthEndpoint => '$baseUrl/health';
 
   // National Emergency Numbers
