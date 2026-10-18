@@ -2,7 +2,7 @@ class ApiConstants {
   // Use 10.0.2.2 for Android emulator, localhost for web/desktop, or custom LAN IP for physical device
   static const String _defaultUrl = String.fromEnvironment(
     'BACKEND_BASE_URL',
-    defaultValue: 'http://localhost:8000',
+    defaultValue: 'https://sanjeevini-ai.onrender.com',
   );
 
   static String baseUrl = _defaultUrl;
