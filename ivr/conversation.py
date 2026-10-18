@@ -150,9 +150,21 @@ class ConversationController:
         )
         self.sessions.update(session)
 
-        # Check for human escalation keywords
+        # Only escalate locally if the caller is explicitly asking for a human transfer
+        # without reporting any snakebite incident or symptoms.
         lower_text = clean_text.lower()
-        if any(kw in lower_text for kw in ["operator", "human", "help me", "doctor", "madad", "baat karao"]):
+        has_emergency_terms = any(
+            kw in lower_text
+            for kw in [
+                "saanp", "snake", "bite", "kaat", "katlas", "dhas", "wound", "field",
+                "dard", "village", "hospital", "patient", "sujan", "vomit", "poison",
+                "kaha", "kahan", "madad"
+            ]
+        )
+        is_explicit_transfer_request = any(
+            kw in lower_text for kw in ["operator", "human agent", "insaan se baat", "baat karao", "human please"]
+        )
+        if is_explicit_transfer_request and not has_emergency_terms:
             session.is_active = True
             self.sessions.update(session)
             escalation_text = SpeechAdapter.get_escalation_prompt(session.language)
@@ -175,8 +187,9 @@ class ConversationController:
             language=session.language,
         )
 
-        # Preserve and update session state
-        session.conversation_id = backend_resp.conversation_id
+        # Preserve and update session state (do not overwrite with None if previous turn had ID)
+        if backend_resp.conversation_id:
+            session.conversation_id = backend_resp.conversation_id
         if backend_resp.case_id:
             session.case_id = backend_resp.case_id
         self.sessions.update(session)
@@ -186,6 +199,7 @@ class ConversationController:
             response_text=backend_resp.response_text,
             language=session.language,
             next_action=backend_resp.next_action,
+            is_fallback=backend_resp.is_fallback,
         )
         spoken_text = SpeechAdapter.sanitize_for_tts(localized_text)
 
@@ -201,9 +215,10 @@ class ConversationController:
                 asv_status=asv_stat,
                 language=session.language,
             )
-            # Only append if not already in response text
-            if fac_name.lower() not in spoken_text.lower():
+            # Append facility and ASV warning if not already in spoken text
+            if "anti-snake venom" not in spoken_text.lower() and "asv" not in spoken_text.lower():
                 spoken_text = f"{spoken_text} {fac_speech}".strip()
+
 
         return {
             "session_id": session.session_id,
@@ -216,6 +231,7 @@ class ConversationController:
             "language": session.language,
             "is_fallback": backend_resp.is_fallback,
         }
+
 
 
     def end_call(self, session_id: str) -> Dict[str, Any]:

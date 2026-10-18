@@ -30,7 +30,8 @@ class SpeechAdapter:
         "snake", "bite", "hospital", "patient", "emergency", "ambulance",
         "doctor", "field", "village", "landmark", "ho gaya", "ho gayi", "kahan",
         "kya", "karun", "karu", "hua", "hai", "tha", "thi", "bhai", "saanp",
-        "kaata", "dard", "sujan", "jaldi", "batao", "bhejo", "chahiye", "help"
+        "kaata", "dard", "sujan", "jaldi", "batao", "bhejo", "chahiye", "help",
+        "madad", "nearest"
     ]
 
     @classmethod
@@ -67,10 +68,6 @@ class SpeechAdapter:
 
         # If predominantly Latin letters without specific dialect markers
         if re.search(r"[a-zA-Z]", text):
-            # If current language was already Hinglish, preserve it
-            if current_language == "hinglish":
-                return "hinglish"
-            # Otherwise default to Hinglish for Romanized input
             return "hinglish"
 
         return current_language or "hindi"
@@ -122,91 +119,122 @@ class SpeechAdapter:
         return "हम आपकी बात ठीक से समझ नहीं पाए। कृपया बताएं कि मरीज कहाँ है और क्या हुआ है?"
 
     @staticmethod
-    def localize_response(response_text: str, language: str, next_action: Optional[str] = None) -> str:
+    def localize_response(
+        response_text: str,
+        language: str,
+        next_action: Optional[str] = None,
+        is_fallback: bool = False,
+    ) -> str:
         """
         Faithfully translates and localizes the authoritative meaning of response_text
         into the caller's detected language (Hindi, Hinglish, or Bhojpuri).
         Preserves facility names, numbers, distances, case IDs, and medical safety meaning.
+        Never makes unverified claims such as 'Ambulance dispatched' on fallback.
         """
         lang = (language or "hindi").lower()
+        lower_resp = (response_text or "").lower()
 
-        # If response_text already has Devanagari and language is Hindi, return sanitized text
-        has_devanagari = bool(re.search(r"[\u0900-\u097F]", response_text))
-
-        lower_resp = response_text.lower()
-
-        # Extract context flags from backend response_text
-        is_calm_instruction = any(w in lower_resp for w in ["calm", "still", "do not walk", "wound", "tourniquet"])
-        is_location_request = (next_action == "COLLECT_LOCATION") or any(w in lower_resp for w in ["where are you", "location", "village", "landmark"])
-        is_dispatched = any(w in lower_resp for w in ["dispatched", "referral", "ambulance", "initiated"])
-
-        if "bhojpuri" in lang:
-            parts = []
-            if is_calm_instruction:
-                parts.append(
-                    "मरीज के एकदम शांत आ स्थिर रखीं। काटे वाला अंग बिलकुल मत हिलाईं। "
-                    "घाव पर चीरा मत लगाईं, जहर मत चूसीं, आ बरफ भा कस के पट्टी मत बान्हीं। "
-                    "तुरंत 108 पर फोन करीं भा नजदीकी अस्पताल ले जाईं।"
+        # 1. Fallback / Server Unreachable Handling
+        if is_fallback or "cannot reach the central emergency server" in lower_resp or "unreachable" in lower_resp:
+            if "bhojpuri" in lang:
+                return (
+                    "आपातकालीन सूचना: सर्वर से संपर्क नइखे हो पावत। मरीज के एकदम शांत आ स्थिर रखीं। "
+                    "घाव पर चीरा मत लगाईं, जहर मत चूसीं, बरफ मत लगाईं आ बन्हल पट्टी मत खोलीं। "
+                    "तुरंत 108 भा 112 पर फोन क के एम्बुलेंस बोलाईं।"
                 )
-            if is_location_request:
-                parts.append("रउआ कवन गाँव, टोला भा नजदीकी जगह पर बानी, बताईं?")
-            if is_dispatched:
-                parts.append("एम्बुलेंस आ नजदीकी अस्पताल के सूचना भेज दिहल गइल बा।")
+            elif "hinglish" in lang:
+                return (
+                    "Emergency alert: Central emergency server se abhi contact nahi ho pa raha hai. "
+                    "Patient ko bilkul calm aur strictly still rakhein. Wound par cut na lagayein, "
+                    "poison suck na karein, aur bandhi hui patti na hatayein. "
+                    "Immediate transport ke liye please turant 108 ya 112 ambulance ko call karein."
+                )
+            else:
+                return (
+                    "आपातकालीन सूचना: केंद्रीय सर्वर से अभी संपर्क नहीं हो पा रहा है। मरीज को बिल्कुल शांत और स्थिर रखें। "
+                    "घाव पर चीरा न लगाएं, जहर न चूसें, बर्फ न लगाएं, और बंधी पट्टी न हटाएं। "
+                    "सीधे 108 या 112 पर कॉल करके एम्बुलेंस बुलाएं।"
+                )
 
-            if parts:
-                return " ".join(parts)
-            # If already in Devanagari, preserve
-            if has_devanagari:
-                return response_text
+        # 2. Check for Case ID in response (e.g. Turn 1 Case Creation)
+        case_match = re.search(r"Case ID:\s*([A-Za-z0-9\-]+)", response_text, re.IGNORECASE)
+        cid_str = case_match.group(1) if case_match else None
+
+        if cid_str or "emergency case recorded" in lower_resp:
+            cid_display = f" (Case ID: {cid_str})" if cid_str else ""
+            if "bhojpuri" in lang:
+                return (
+                    f"आपातकालीन केस दर्ज हो गइल बा{cid_display}। मरीज के एकदम शांत आ स्थिर रखीं। "
+                    f"घाव पर चीरा मत लगाईं आ जहर मत चूसीं। अगर पट्टी बन्हल बा त ओकरा के मत खोलीं। "
+                    f"रउआ कवन गाँव भा नजदीकी जगह पर बानी, बताईं?"
+                )
+            elif "hinglish" in lang:
+                return (
+                    f"Emergency case record ho gaya hai{cid_display}. Patient ko bilkul calm aur strictly still rakhein. "
+                    f"Bite wound par cut ya suck na karein. Agar tourniquet pehle se bandha hai, to use remove na karein. "
+                    f"Please apna current village, landmark ya location batayein taaki nearest hospital route kiya ja sake."
+                )
+            else:
+                return (
+                    f"आपातकालीन केस दर्ज कर लिया गया है{cid_display}। मरीज को बिल्कुल शांत और स्थिर रखें। "
+                    f"काटे हुए घाव पर चीरा न लगाएं और जहर न चूसें। यदि पहले से पट्टी बंधी है, तो उसे बिल्कुल न हटाएं। "
+                    f"कृपया अपना गाँव, शहर या नजदीकी मुख्य पहचान बताएं ताकि नजदीकी अस्पताल का रास्ता बताया जा सके।"
+                )
+
+        # 3. Check for Location received / Referral turn (Turn 2)
+        if "location received" in lower_resp or "nearest healthcare facility" in lower_resp:
+            # Extract facility name and distance if present
+            fac_match = re.search(r"Nearest healthcare facility:\s*([^\n(]+)", response_text, re.IGNORECASE)
+            dist_match = re.search(r"\(([\d\.]+)\s*km\s*away\)", response_text, re.IGNORECASE)
+
+            fac_name = fac_match.group(1).strip() if fac_match else "Nearest PHC"
+            dist_str = f"{dist_match.group(1)} km" if dist_match else "nearby"
+
+
+            # Check referral status
+            ref_status = "PENDING"
+            if "status confirmed" in lower_resp:
+                ref_status = "CONFIRMED"
+
+            if "bhojpuri" in lang:
+                return (
+                    f"जगह के जानकारी मिल गइल। सभसे नजदीकी अस्पताल: {fac_name} ({dist_str})। "
+                    f"रेफरल स्थिति: {ref_status}। 108 एम्बुलेंस से तुरंत अस्पताल जाए के इंतजाम करीं। "
+                    f"काटे वाला अंग के एकदम स्थिर रखीं।"
+                )
+            elif "hinglish" in lang:
+                return (
+                    f"Location receive ho gaya hai. Nearest healthcare facility: {fac_name} ({dist_str}). "
+                    f"Referral status: {ref_status}. Please 108 ambulance se immediate transport arrange karein. "
+                    f"Bitten limb ko strictly immobilized aur still rakhein."
+                )
+            else:
+                return (
+                    f"स्थान प्राप्त हुआ। नजदीकी स्वास्थ्य केंद्र: {fac_name} ({dist_str})। "
+                    f"रेफरल स्थिति: {ref_status}। कृपया 108 एम्बुलेंस द्वारा तुरंत मरीज को अस्पताल ले जाने की व्यवस्था करें। "
+                    f"काटे हुए अंग को स्थिर रखें।"
+                )
+
+        # 4. If response is already in Devanagari and language is Hindi or Bhojpuri, return as is
+        has_devanagari = bool(re.search(r"[\u0900-\u097F]", response_text))
+        if has_devanagari and "hinglish" not in lang:
+            return response_text
+
+        # 5. Default General Safe Guidance for Other Text
+        if "bhojpuri" in lang:
             return (
                 "मरीज के एकदम शांत आ स्थिर रखीं। तुरंत 108 नंबर पर फोन करीं। "
-                "काटे वाला अंग पर चीरा भा पट्टी मत बान्हीं।"
+                "काटे वाला अंग पर चीरा भा बरफ मत लगाईं।"
             )
-
         elif "hinglish" in lang:
-            parts = []
-            if is_calm_instruction:
-                parts.append(
-                    "Patient ko bilkul calm aur completely still rakhein. Bitten part ko move na karein. "
-                    "Wound par cut na lagayein, poison suck na karein, aur ice ya tight tourniquet na bandhein. "
-                    "Turant 108 par call karein ya nearest hospital proceed karein."
-                )
-            if is_location_request:
-                parts.append("Please apna gaon, city ya nearest landmark batayein?")
-            if is_dispatched:
-                parts.append("Ambulance dispatched. Nearest facility referral initiate ho gaya hai.")
-
-            if parts:
-                return " ".join(parts)
-            if not has_devanagari:
-                return response_text
             return (
-                "Patient ko bilkul calm aur still rakhein. Turant 108 par call karein. "
-                "Bitten limb ko move na karein."
+                "Patient ko bilkul calm aur strictly still rakhein. Turant 108 ambulance par call karein. "
+                "Bitten limb ko bilkul move na karein."
             )
-
         else:
-            # Standard Hindi (Devanagari)
-            parts = []
-            if is_calm_instruction:
-                parts.append(
-                    "मरीज को बिल्कुल शांत और स्थिर रखें। काटे हुए हिस्से को बिल्कुल न हिलाएं। "
-                    "घाव पर चीरा न लगाएं, जहर न चूसें, और बर्फ या कसकर पट्टी (टूर्निकेट) न बांधें। "
-                    "तुरंत 108 पर कॉल करें या नजदीकी अस्पताल ले जाएं।"
-                )
-            if is_location_request:
-                parts.append("कृपया अपने गाँव, शहर या नजदीकी मुख्य पहचान (लैंडमार्क) का नाम बताएं।")
-            if is_dispatched:
-                parts.append("एम्बुलेंस सेवा और नजदीकी अस्पताल से समन्वय शुरू कर दिया गया है।")
-
-            if parts:
-                return " ".join(parts)
-            if has_devanagari:
-                return response_text
-            # English backend text translated to Hindi Devanagari
             return (
                 "मरीज को बिल्कुल शांत और स्थिर रखें। तुरंत 108 पर संपर्क करें। "
-                "काटे हुए अंग को न हिलाएं और न ही कोई चीरा या पट्टी लगाएं।"
+                "काटे हुए अंग को न हिलाएं और न ही कोई चीरा या बर्फ लगाएं।"
             )
 
     @staticmethod
@@ -241,7 +269,7 @@ class SpeechAdapter:
             return speech
 
         elif "hinglish" in lang:
-            dist_str = f"{distance_km:.1f} kilometers" if distance_km else "nearby"
+            dist_str = f"{distance_km:.1f} km" if distance_km else "nearby"
             speech = f"Nearest hospital {facility_name} hai, jo lagbhag {dist_str} door hai. "
 
             if status_upper == "AVAILABLE":
@@ -279,37 +307,41 @@ class SpeechAdapter:
         if "bhojpuri" in lang:
             if attempt == 1:
                 return "रउआ के आवाज नइखे आवत। बताईं मरीज कहाँ बाड़न आ का भइल बा?"
-            return "लाइन पर बनल रहीं, हम emergency सेवा से जोड़े के कोशिश कर रहल बानी।"
+            return "लाइन पर बनल रहीं, हम emergency सहायता जोड़े के कोशिश कर रहल बानी।"
 
         elif "hinglish" in lang:
             if attempt == 1:
                 return "Hum aapki aawaz nahi sun paaye. Please batayein patient kahan hai aur kya hua hai?"
-            return "Please line par bane rahein, hum emergency service se connect kar rahe hain."
+            return "Please line par bane rahein, hum emergency help connect karne ki koshish kar rahe hain."
 
         else:
             # Hindi (Devanagari)
             if attempt == 1:
                 return "हम आपकी आवाज़ नहीं सुन पाए। कृपया बताएं कि मरीज कहाँ है और क्या हुआ है?"
-            return "कृपया लाइन पर बने रहें, हम आपातकालीन सेवा से जोड़ने का प्रयास कर रहे हैं।"
+            return "कृपया लाइन पर बने रहें, हम आपातकालीन सहायता से जोड़ने का प्रयास कर रहे हैं।"
 
     @staticmethod
     def get_escalation_prompt(language: str = "hindi") -> str:
-        """Returns prompt when escalating to human emergency coordinator in caller's language."""
+        """
+        Returns truthful prompt when human operator is requested.
+        Never falsely claims a human coordinator is currently connected.
+        Directs caller to dial 108 or 112 directly.
+        """
         lang = (language or "hindi").lower()
 
         if "bhojpuri" in lang:
             return (
-                "रउआ कॉल के आपातकालीन कोऑर्डिनेटर से जोड़ल जा रहल बा। "
-                "मरीज के एकदम शांत आ स्थिर रखीं। तुरंत 108 पर फोन करीं।"
+                "मानव ऑपरेटर से सीधा बात करावे के सुविधा अभी नइखे। "
+                "मरीज के एकदम शांत आ स्थिर रखीं। तुरंत मदद भा एम्बुलेंस खातिर 108 नंबर पर फोन करीं।"
             )
         elif "hinglish" in lang:
             return (
-                "Connecting your call to an emergency coordinator. "
-                "Patient ko bilkul calm aur still rakhein. Turant 108 par call karein."
+                "Direct human operator transfer abhi available nahi hai. "
+                "Patient ko bilkul calm aur strictly still rakhein. Immediate transport aur emergency help ke liye please turant 108 ya 112 par call karein."
             )
         else:
             # Hindi (Devanagari)
             return (
-                "आपका कॉल आपातकालीन कोऑर्डिनेटर से जोड़ा जा रहा है। "
-                "मरीज को बिल्कुल शांत और स्थिर रखें। तुरंत 108 पर कॉल करें।"
+                "मानव ऑपरेटर का सीधा ट्रांसफर अभी उपलब्ध नहीं है। "
+                "मरीज को बिल्कुल शांत और स्थिर रखें। आपातकालीन सहायता या एम्बुलेंस के लिए तुरंत 108 या 112 पर संपर्क करें।"
             )

@@ -10,12 +10,12 @@ except ImportError:
 
 logger = logging.getLogger("ivr.backend_client")
 
-# Clinician-reviewed emergency fallback guidance (never delays referral or invents diagnoses)
+# Truthful clinician-reviewed emergency fallback (no false dispatch or transfer claims)
 EMERGENCY_FALLBACK_TEXT = (
-    "Emergency advisory: Keep the patient calm and completely still. "
-    "Do not walk or move the bitten limb. Do not cut the wound, suck venom, "
-    "or apply ice or a tourniquet. Proceed immediately to the nearest hospital "
-    "or call 108 emergency ambulance service."
+    "Emergency alert: We cannot reach the central emergency server right now. "
+    "Keep the patient completely calm and strictly still. Do not walk or move the bitten limb. "
+    "Do not cut the wound, suck venom, apply ice, or remove an existing tourniquet. "
+    "Call 108 or 112 emergency ambulance immediately for transport."
 )
 
 
@@ -42,10 +42,12 @@ class FacilityItem(BaseModel):
 class AssistantMessageResponse(BaseModel):
     response_text: str = Field(..., description="Text response to be spoken to caller")
     next_action: str = Field(default="CONTINUE", description="Next conversation or triage action")
-    conversation_id: str = Field(..., description="Unique conversation session ID")
+    conversation_id: Optional[str] = Field(default=None, description="Unique conversation session ID")
     case_id: Optional[str] = Field(default=None, description="Emergency case ID")
     case_status: Optional[str] = Field(default=None, description="Current case status")
     facilities: Optional[List[Dict[str, Any]]] = Field(default=None, description="Nearby facilities")
+    referral: Optional[Dict[str, Any]] = Field(default=None, description="Referral information")
+    safety_metadata: Optional[Dict[str, Any]] = Field(default=None, description="Safety metadata from backend")
     safety_disclaimer: Optional[str] = Field(default=None, description="Clinical/inventory disclaimer")
     is_fallback: bool = Field(default=False, description="True if generated locally due to backend failure")
 
@@ -66,15 +68,19 @@ class BackendClient:
     def _create_fallback_response(
         self, conversation_id: Optional[str], case_id: Optional[str]
     ) -> AssistantMessageResponse:
-        """Returns safe clinician-approved emergency fallback response."""
-        cid = conversation_id or "fallback-session"
+        """
+        Returns safe clinician-approved emergency fallback response.
+        Preserves existing conversation_id and case_id if present, but NEVER invents
+        fake IDs such as 'fallback-session'.
+        """
         return AssistantMessageResponse(
             response_text=EMERGENCY_FALLBACK_TEXT,
             next_action="ESCALATE_HUMAN",
-            conversation_id=cid,
+            conversation_id=conversation_id,
             case_id=case_id,
-            case_status="ESCALATED",
+            case_status="FAILED_BACKEND_CONNECT",
             facilities=None,
+            referral=None,
             safety_disclaimer="Direct emergency referral due to backend unavailability.",
             is_fallback=True,
         )
@@ -118,6 +124,14 @@ class BackendClient:
         while attempts <= self.max_retries:
             attempts += 1
             try:
+                logger.info(
+                    "Outbound request to backend: POST %s (attempt %d, cid=%s, case=%s)",
+                    self.endpoint_url,
+                    attempts,
+                    conversation_id,
+                    case_id,
+                )
+
                 if client is not None:
                     response = await _execute_post(client)
                 else:
@@ -126,40 +140,72 @@ class BackendClient:
 
                 if response.status_code == 200:
                     data = response.json()
+                    resp_cid = data.get("conversation_id") or conversation_id
+                    resp_case_id = data.get("case_id") or case_id
+                    # Handle both nearby_facilities and facilities keys
+                    fac_list = data.get("nearby_facilities") or data.get("facilities")
+
+                    logger.info(
+                        "Backend responded HTTP 200 OK: conversation_id=%s, case_id=%s, next_action=%s",
+                        resp_cid,
+                        resp_case_id,
+                        data.get("next_action"),
+                    )
+
                     return AssistantMessageResponse(
                         response_text=data.get("response_text", EMERGENCY_FALLBACK_TEXT),
                         next_action=data.get("next_action", "CONTINUE"),
-                        conversation_id=data.get("conversation_id") or conversation_id or "session-unknown",
-                        case_id=data.get("case_id") or case_id,
+                        conversation_id=resp_cid,
+                        case_id=resp_case_id,
                         case_status=data.get("case_status"),
-                        facilities=data.get("facilities"),
+                        facilities=fac_list,
+                        referral=data.get("referral"),
+                        safety_metadata=data.get("safety_metadata"),
                         safety_disclaimer=data.get("safety_disclaimer"),
                         is_fallback=False,
                     )
                 else:
-                    logger.warning(
-                        "Backend returned HTTP %s: %s",
+                    logger.error(
+                        "Backend returned HTTP %d for target %s: %s",
                         response.status_code,
-                        response.text,
+                        self.endpoint_url,
+                        response.text[:200],
                     )
                     # Non-200 responses should not blindly retry to avoid duplicate case creation
+                    last_error = f"HTTP_{response.status_code}"
                     break
 
             except httpx.ConnectError as ce:
-                logger.warning("Connection to backend failed (attempt %d): %s", attempts, ce)
+                logger.error(
+                    "Backend ConnectError: target=%s, attempt=%d, exception=%s",
+                    self.endpoint_url,
+                    attempts,
+                    type(ce).__name__,
+                )
                 last_error = ce
             except httpx.TimeoutException as te:
-                logger.warning("Backend request timed out (attempt %d): %s", attempts, te)
+                logger.error(
+                    "Backend TimeoutException: target=%s, timeout=%ss, attempt=%d",
+                    self.endpoint_url,
+                    self.timeout_seconds,
+                    attempts,
+                )
                 last_error = te
                 # Do not retry on timeouts: the backend might have already processed the case
                 break
             except Exception as e:
-                logger.error("Unexpected error contacting backend: %s", e, exc_info=True)
+                logger.error(
+                    "Unexpected error contacting backend: target=%s, error=%s",
+                    self.endpoint_url,
+                    e,
+                    exc_info=True,
+                )
                 last_error = e
                 break
 
         logger.error(
-            "Backend communication failed (%s). Triggering emergency safety fallback.",
+            "Backend communication failed (error=%s, target=%s). Triggering emergency safety fallback.",
             last_error,
+            self.endpoint_url,
         )
         return self._create_fallback_response(conversation_id, case_id)
