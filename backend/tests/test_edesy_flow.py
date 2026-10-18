@@ -16,11 +16,36 @@ No production writes: all call_sids are prefixed with "test-".
 """
 import re
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
+from sqlalchemy import text
 
 from app.main import app
+from app.db.session import AsyncSessionLocal
 
 _TOOL = "/api/v1/edesy/tool"
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def cleanup_test_sessions():
+    async with AsyncSessionLocal() as db:
+        await db.execute(
+            text(
+                "DELETE FROM conversation_sessions WHERE id LIKE 't%' "
+                "OR id LIKE 'test-%' OR id LIKE 'edesy-%' OR id LIKE 'wh-%'"
+            )
+        )
+        await db.commit()
+    yield
+    async with AsyncSessionLocal() as db:
+        await db.execute(
+            text(
+                "DELETE FROM conversation_sessions WHERE id LIKE 't%' "
+                "OR id LIKE 'test-%' OR id LIKE 'edesy-%' OR id LIKE 'wh-%'"
+            )
+        )
+        await db.commit()
+
 
 # Regex to detect any Case ID / UUID in spoken text
 _ID_PATTERN = re.compile(

@@ -3,8 +3,33 @@ test_edesy.py — Legacy Edesy endpoint integration tests.
 Updated to match the new 3-symptom → location → PHC/CHC flow.
 """
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
+from sqlalchemy import text
 from app.main import app
+from app.db.session import AsyncSessionLocal
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def cleanup_test_sessions():
+    async with AsyncSessionLocal() as db:
+        await db.execute(
+            text(
+                "DELETE FROM conversation_sessions WHERE id LIKE 't%' "
+                "OR id LIKE 'test-%' OR id LIKE 'edesy-%' OR id LIKE 'wh-%'"
+            )
+        )
+        await db.commit()
+    yield
+    async with AsyncSessionLocal() as db:
+        await db.execute(
+            text(
+                "DELETE FROM conversation_sessions WHERE id LIKE 't%' "
+                "OR id LIKE 'test-%' OR id LIKE 'edesy-%' OR id LIKE 'wh-%'"
+            )
+        )
+        await db.commit()
+
 
 
 @pytest.mark.asyncio
